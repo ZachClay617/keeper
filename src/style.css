@@ -225,6 +225,33 @@ tr.got .shop-check::after { opacity: 1; }
 .budget-donut-legend .legend-row { display: flex; align-items: center; gap: 8px; }
 .budget-donut-legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
+.guide-tabs { display: flex; gap: 6px; overflow-x: auto; background: var(--mist); border-radius: 12px; padding: 5px; margin-bottom: 14px; }
+.guide-tab {
+  flex: 1; white-space: nowrap; text-align: center; padding: 9px 12px; border-radius: 9px; border: none; background: none;
+  font-family: "IBM Plex Sans", sans-serif; font-size: 13.5px; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+}
+.guide-tab.active { background: var(--surface); color: var(--moss-deep); box-shadow: 0 1px 2px var(--line); }
+.guide-search {
+  width: 100%; padding: 10px 13px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); font-family: inherit; font-size: 14px; margin-bottom: 14px;
+}
+.guide-row { border-top: 1px solid var(--line); }
+.guide-row:first-of-type { border-top: none; }
+.guide-row.hidden { display: none; }
+.guide-row-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 11px 2px;
+  cursor: pointer; font-family: inherit; background: none; border: none; width: 100%; text-align: left;
+}
+.guide-name { font-weight: 600; font-size: 14px; color: var(--ink); }
+.guide-chevron { color: var(--ink-soft); font-size: 11px; transition: transform 0.15s ease; flex-shrink: 0; margin-left: 10px; }
+.guide-row.open .guide-chevron { transform: rotate(180deg); }
+.guide-details { display: none; padding: 0 2px 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+.guide-row.open .guide-details { display: block; }
+.guide-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; margin-bottom: 6px; }
+.guide-field strong { color: var(--ink); font-weight: 600; }
+.guide-note { margin-top: 4px; }
+@media (max-width: 420px) { .guide-field-grid { grid-template-columns: 1fr; } }
+
 .profile-top { display: flex; gap: 20px; align-items: center; }
 .profile-emoji {
   width: 84px; height: 84px; border-radius: 20px; background: var(--mist);

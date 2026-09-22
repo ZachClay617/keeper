@@ -72,6 +72,7 @@
           <div class="account-info" id="accountInfo"></div>
           <button class="manage-link" id="budgetBtn">Budget</button>
           <button class="manage-link" id="settingsBtn">Settings</button>
+          <button class="manage-link" id="careGuidesBtn">Care Guides</button>
           <button class="manage-link delete-link" id="logoutBtn">Log out</button>
         </div>
       </div>
@@ -277,6 +278,16 @@
         <select id="full-shop-for" class="shop-input shop-input-for"></select>
         <button class="btn-secondary" id="fullShopAddBtn" style="margin-top:0;">Add</button>
       </div>
+    </div>
+  </div>
+
+  <div id="careGuidesView" style="display:none;">
+    <div class="settings-back-row"><button class="manage-link" id="careGuidesBackBtn">← Back</button></div>
+    <div class="guide-tabs" id="guideTabs"></div>
+    <input type="text" class="guide-search" id="guideSearch" placeholder="Search this category…">
+    <div class="card">
+      <div id="guideNoMatch" class="empty-state" style="display:none;">No guides match that search.</div>
+      <div id="guideList"></div>
     </div>
   </div>
 
