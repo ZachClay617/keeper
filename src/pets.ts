@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { onPetSelected as notifyDailyPetSelected, onSignedOut as notifyDailySignedOut } from './daily'
+import { onPetSelected as notifyLogPetSelected, onSignedOut as notifyLogSignedOut } from './careLog'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
 type PetStatus = 'active' | 'memorial'
@@ -221,6 +222,7 @@ function renderAll() {
   if (currentPetId !== lastNotifiedPetId) {
     lastNotifiedPetId = currentPetId
     notifyDailyPetSelected(currentPetId)
+    notifyLogPetSelected(currentPetId)
   }
 }
 
@@ -584,4 +586,5 @@ export function onSignedOut() {
   lastNotifiedPetId = undefined
   viewingMemorial = false
   notifyDailySignedOut()
+  notifyLogSignedOut()
 }
