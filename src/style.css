@@ -224,6 +224,46 @@ tr.got .shop-check::after { opacity: 1; }
 .settings-back-row { margin-bottom: 14px; }
 .settings-note { font-size: 12.5px; margin-top: 8px; }
 
+.clock-wrap { display: flex; align-items: center; gap: 8px; }
+.header-clock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; color: var(--ink-soft); letter-spacing: 0.02em;
+  background: var(--mist); padding: 5px 10px; border-radius: 20px;
+}
+
+.bell-wrap { position: relative; }
+.bell {
+  position: relative;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-soft); flex-shrink: 0; cursor: pointer;
+}
+.bell-badge {
+  position: absolute; top: -3px; right: -3px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--clay); color: #fff; font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.notif-panel {
+  position: absolute; top: 46px; right: 0; width: 270px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.14); display: none; z-index: 40;
+}
+.notif-panel.open { display: block; }
+.notif-panel h4 { margin: 0 0 8px; font-size: 13px; font-weight: 700; }
+.notif-item { font-size: 13px; padding: 8px 0; border-top: 1px solid var(--line); }
+.notif-item:first-of-type { border-top: none; padding-top: 0; }
+.notif-empty { font-size: 13px; color: var(--ink-soft); }
+
+.reminder-pet-block { padding: 14px 0; border-top: 1px solid var(--line); }
+.reminder-pet-block:first-child { border-top: none; padding-top: 0; }
+.reminder-pet-name { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.reminder-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 13.5px; }
+.reminder-add-row { display: flex; gap: 8px; margin-top: 8px; }
+.reminder-input {
+  flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); font-family: inherit; font-size: 13px;
+}
+
 .manage-row { display: flex; justify-content: center; gap: 22px; margin-top: 22px; }
 .manage-link { background: none; border: none; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--ink-soft); padding: 4px; }
 .manage-link:hover { color: var(--ink); }

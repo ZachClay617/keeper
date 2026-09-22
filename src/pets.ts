@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import { onPetSelected as notifyDailyPetSelected, onSignedOut as notifyDailySignedOut } from './daily'
 import { onPetSelected as notifyLogPetSelected, onSignedOut as notifyLogSignedOut } from './careLog'
 import { onPetSelected as notifyShoppingPetSelected, onSignedOut as notifyShoppingSignedOut } from './shopping'
+import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } from './reminders'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
 type PetStatus = 'active' | 'memorial'
@@ -234,6 +235,7 @@ function renderAll() {
   }
   const pet = activePets().find((p) => p.id === currentPetId) || null
   notifyShoppingPetSelected(pet ? { id: pet.id, name: pet.name, monthly_budget: pet.monthly_budget } : null)
+  refreshReminders()
 }
 
 function renderMemorialToggle() {
@@ -588,6 +590,7 @@ export async function onSignedIn() {
   renderMemorialToggle()
   $('appMain').style.display = ''
   $('memorialView').style.display = 'none'
+  await initReminders()
 }
 
 export function onSignedOut() {
@@ -598,4 +601,5 @@ export function onSignedOut() {
   notifyDailySignedOut()
   notifyLogSignedOut()
   notifyShoppingSignedOut()
+  remindersSignedOut()
 }

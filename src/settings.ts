@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient'
 import { timezoneOptions, setAccountTimezone, getAccountTimezone } from './timezone'
 import { refreshCurrentPet } from './pets'
+import { renderRemindersManager } from './reminders'
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id)
@@ -37,6 +38,7 @@ async function renderSettings() {
   $('passwordNote').textContent = ''
   populateTimezoneSelect()
   clearNote('profileNote')
+  await renderRemindersManager()
 }
 
 function clearNote(id: string) {

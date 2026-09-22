@@ -1,8 +1,10 @@
 import './style.css'
 import { initAuth } from './auth'
 import { showSettings, hideSettings } from './settings'
+import { startClock } from './clock'
 
 initAuth()
+startClock()
 
 document.getElementById('settingsBtn')?.addEventListener('click', () => {
   document.getElementById('accountPanel')?.classList.remove('open')
