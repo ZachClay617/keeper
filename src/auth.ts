@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { onSignedIn, onSignedOut } from './pets'
+import { setAccountTimezone } from './timezone'
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id)
@@ -58,10 +59,11 @@ async function renderAccountInfo() {
   let name = ''
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name')
+    .select('name, timezone')
     .eq('id', user.id)
     .single()
   if (profile?.name) name = profile.name
+  setAccountTimezone(profile?.timezone)
 
   const accountBtn = $('accountBtn')
   const accountInfo = $('accountInfo')

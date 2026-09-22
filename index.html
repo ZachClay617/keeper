@@ -67,6 +67,7 @@
         <button class="account-btn" id="accountBtn" aria-label="Account"></button>
         <div class="account-panel" id="accountPanel">
           <div class="account-info" id="accountInfo"></div>
+          <button class="manage-link" id="settingsBtn">Settings</button>
           <button class="manage-link delete-link" id="logoutBtn">Log out</button>
         </div>
       </div>
@@ -168,6 +169,28 @@
 
   <div id="memorialView" style="display:none;">
     <div id="memorialList"></div>
+  </div>
+
+  <div id="settingsView" style="display:none;">
+    <div class="settings-back-row"><button class="manage-link" id="settingsBackBtn">← Back</button></div>
+    <div class="card">
+      <div class="section-label">Profile</div>
+      <div class="field"><label for="set-name">Name</label><input id="set-name" type="text"></div>
+      <div class="field"><label for="set-email">Email</label><input id="set-email" type="email"></div>
+      <button class="btn-primary" id="saveProfileBtn">Save profile</button>
+      <div class="settings-note" id="profileNote"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">Password</div>
+      <div class="field"><label for="set-password">New password</label><input id="set-password" type="password" placeholder="Leave blank to keep current"></div>
+      <div class="field"><label for="set-password2">Confirm new password</label><input id="set-password2" type="password"></div>
+      <button class="btn-primary" id="savePasswordBtn">Update password</button>
+      <div class="settings-note" id="passwordNote"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">Clock time zone</div>
+      <div class="field"><label for="set-timezone">Time zone</label><select id="set-timezone"></select></div>
+    </div>
   </div>
 
   <footer>Layout and copy are illustrative — not final content.</footer>

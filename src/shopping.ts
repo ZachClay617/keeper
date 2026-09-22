@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { currentMonthKey } from './timezone'
 
 type ShopCategory = 'Food' | 'Litter & Bedding' | 'Medical' | 'Toys' | 'Grooming' | 'Tank/Enclosure' | 'Other'
 
@@ -48,11 +49,6 @@ function formatDate(iso: string | null): string {
   if (!iso) return '—'
   const dt = new Date(iso + 'T00:00:00')
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function currentMonthKey(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 let currentPet: PetRef | null = null

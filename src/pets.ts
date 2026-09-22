@@ -217,6 +217,13 @@ function renderProfile() {
 
 let lastNotifiedPetId: string | null | undefined = undefined
 
+/** Forces Daily Care / Shopping to recompute "today" — call after the account timezone changes. */
+export function refreshCurrentPet() {
+  notifyDailyPetSelected(currentPetId)
+  const pet = activePets().find((p) => p.id === currentPetId) || null
+  notifyShoppingPetSelected(pet ? { id: pet.id, name: pet.name, monthly_budget: pet.monthly_budget } : null)
+}
+
 function renderAll() {
   renderSwitcher()
   renderProfile()

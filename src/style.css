@@ -221,6 +221,9 @@ tr.got .shop-check::after { opacity: 1; }
 .memorial-toggle:hover { color: var(--moss-deep); }
 .memorial-card + .memorial-card { margin-top: 16px; }
 
+.settings-back-row { margin-bottom: 14px; }
+.settings-note { font-size: 12.5px; margin-top: 8px; }
+
 .manage-row { display: flex; justify-content: center; gap: 22px; margin-top: 22px; }
 .manage-link { background: none; border: none; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--ink-soft); padding: 4px; }
 .manage-link:hover { color: var(--ink); }

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { todayKey } from './timezone'
 
 type Category = 'Feeding' | 'Exercise' | 'Medication' | 'Hygiene' | 'Environment' | 'Health'
 
@@ -31,11 +32,6 @@ function esc(s: string): string {
   const div = document.createElement('div')
   div.textContent = s
   return div.innerHTML
-}
-
-function todayKey(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function formatDateKey(key: string): string {
