@@ -73,13 +73,83 @@
     </div>
   </header>
 
-  <div class="card">
-    <div class="section-label">You're signed in</div>
-    <div class="section-text">Authentication is wired up to Supabase. Pet profiles, daily care, shopping, and the rest of the app come next.</div>
+  <div class="memorial-bar"><button class="memorial-toggle" id="memorialToggle"></button></div>
+
+  <div id="appMain">
+  <nav class="pet-switcher" id="petSwitcher" aria-label="Choose a pet"></nav>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="profile" role="tab">Profile</button>
+    <button class="tab" data-tab="daily" role="tab">Daily Care</button>
+    <button class="tab" data-tab="log" role="tab">Care Log</button>
+    <button class="tab" data-tab="shopping" role="tab">Shopping</button>
+  </div>
+
+  <section class="panel active" id="panel-profile">
+    <div class="card">
+      <div class="profile-top">
+        <div class="profile-emoji" id="profileEmoji"></div>
+        <div>
+          <h1 class="profile-name" id="profileName"></h1>
+          <div class="profile-species" id="profileSpecies"></div>
+          <div class="profile-id" id="profileId"></div>
+        </div>
+      </div>
+      <div class="stat-grid" id="statGrid"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">Personality</div>
+      <div class="section-text" id="profilePersonality"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">Care notes</div>
+      <div class="section-text" id="profileNotes"></div>
+    </div>
+    <div class="manage-row" id="profileManageRow">
+      <button class="manage-link" id="editPetBtn">Edit profile</button>
+      <button class="manage-link memorial-link" id="memorializeBtn">In loving memory…</button>
+      <button class="manage-link delete-link" id="deletePetBtn">Delete pet</button>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-daily">
+    <div class="card">
+      <div class="progress-row"><h2>Daily Care</h2></div>
+      <div class="empty-state">Daily checklists are coming in the next build step.</div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-log">
+    <div class="card">
+      <div class="progress-row"><h2>Care Log</h2></div>
+      <div class="empty-state">The care history timeline is coming in a later build step.</div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-shopping">
+    <div class="card">
+      <div class="progress-row"><h2>Shopping List</h2></div>
+      <div class="empty-state">Shopping and budgeting are coming in a later build step.</div>
+    </div>
+  </section>
+  </div>
+
+  <div id="memorialView" style="display:none;">
+    <div id="memorialList"></div>
   </div>
 
   <footer>Layout and copy are illustrative — not final content.</footer>
 </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle"></h3>
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
 </div>
 
 <script type="module" src="/src/main.ts"></script>

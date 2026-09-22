@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { onSignedIn, onSignedOut } from './pets'
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id)
@@ -36,14 +37,16 @@ function clearLoading(button: HTMLButtonElement) {
   button.disabled = false
 }
 
-function showApp() {
+async function showApp() {
   $('authView').style.display = 'none'
   $('mainApp').style.display = ''
+  await onSignedIn()
 }
 
 function showAuth() {
   $('mainApp').style.display = 'none'
   $('authView').style.display = 'flex'
+  onSignedOut()
 }
 
 async function renderAccountInfo() {
@@ -119,7 +122,7 @@ function wireSignup() {
     }
 
     await renderAccountInfo()
-    showApp()
+    await showApp()
   })
 }
 
@@ -140,7 +143,7 @@ function wireLogin() {
     if (error) return showError('loginError', error.message)
 
     await renderAccountInfo()
-    showApp()
+    await showApp()
   })
 }
 
@@ -178,7 +181,7 @@ export async function initAuth() {
 
   if (session) {
     await renderAccountInfo()
-    showApp()
+    await showApp()
   } else {
     showAuth()
   }
@@ -186,7 +189,7 @@ export async function initAuth() {
   supabase.auth.onAuthStateChange(async (_event, session) => {
     if (session) {
       await renderAccountInfo()
-      showApp()
+      await showApp()
     } else {
       showAuth()
     }
