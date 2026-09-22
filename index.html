@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Keeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="authView">
+  <div class="auth-card">
+    <div class="auth-wordmark">🐾 Keeper</div>
+    <div class="auth-tagline">One home for every pet's care.</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-authtab="signup">Sign up</button>
+      <button class="auth-tab" data-authtab="login">Log in</button>
+    </div>
+    <div class="auth-panel active" id="auth-signup">
+      <div class="field"><label for="su-name">Name</label><input id="su-name" type="text" placeholder="e.g. Zachary Clayman"></div>
+      <div class="field"><label for="su-email">Email</label><input id="su-email" type="email" placeholder="you@email.com"></div>
+      <div class="field"><label for="su-password">Password</label>
+        <div class="password-wrap">
+          <input id="su-password" type="password" placeholder="Create a password (min 6 characters)">
+          <button type="button" class="password-toggle" data-target="su-password">Show</button>
+        </div>
+      </div>
+      <div class="auth-error" id="signupError"></div>
+      <button class="btn-primary btn-block" id="signupSubmit">Create account</button>
+    </div>
+    <div class="auth-panel" id="auth-login">
+      <div class="field"><label for="li-email">Email</label><input id="li-email" type="email" placeholder="you@email.com"></div>
+      <div class="field"><label for="li-password">Password</label>
+        <div class="password-wrap">
+          <input id="li-password" type="password" placeholder="Your password">
+          <button type="button" class="password-toggle" data-target="li-password">Show</button>
+        </div>
+      </div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="btn-primary btn-block" id="loginSubmit">Log in</button>
+    </div>
+    <div class="auth-note" id="authNote">Real accounts, backed by Supabase.</div>
+  </div>
+</div>
+
+<div id="mainApp" style="display:none;">
+<div class="page">
+
+  <header class="app-header">
+    <button class="wordmark" id="homeBtn" title="Home">
+      <svg class="bird-icon" viewBox="0 0 44 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <path d="M30 18 L40 12 L33 24 Z" style="fill: var(--moss-deep);"/>
+        <ellipse cx="20" cy="19" rx="12" ry="10" style="fill: var(--moss);"/>
+        <path d="M17 13 Q27 14 24 27 Q14 25 17 13 Z" style="fill: var(--moss-deep); opacity: 0.55;"/>
+        <circle cx="11" cy="11" r="7.5" style="fill: var(--moss);"/>
+        <path d="M2 11 L9 8.5 L9 13.5 Z" style="fill: var(--honey);"/>
+        <circle cx="10.5" cy="9.5" r="1.4" style="fill: var(--ink);"/>
+        <path d="M15 28 L13 35 M22 28 L24 35" style="stroke: var(--honey); stroke-width: 2.2; stroke-linecap: round; fill: none;"/>
+      </svg>
+      <span>Keeper</span>
+    </button>
+    <div class="header-actions">
+      <div class="account-wrap">
+        <button class="account-btn" id="accountBtn" aria-label="Account"></button>
+        <div class="account-panel" id="accountPanel">
+          <div class="account-info" id="accountInfo"></div>
+          <button class="manage-link delete-link" id="logoutBtn">Log out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="section-label">You're signed in</div>
+    <div class="section-text">Authentication is wired up to Supabase. Pet profiles, daily care, shopping, and the rest of the app come next.</div>
+  </div>
+
+  <footer>Layout and copy are illustrative — not final content.</footer>
+</div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
