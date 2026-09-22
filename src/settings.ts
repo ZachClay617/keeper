@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import { timezoneOptions, setAccountTimezone, getAccountTimezone } from './timezone'
 import { refreshCurrentPet } from './pets'
 import { renderRemindersManager } from './reminders'
+import { showOnly } from './views'
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id)
@@ -152,15 +153,12 @@ export function showSettings() {
     wireStaticControls()
     wired = true
   }
-  $('appMain').style.display = 'none'
-  $('memorialView').style.display = 'none'
-  $('settingsView').style.display = ''
+  showOnly('settingsView')
   renderSettings()
 }
 
 export function hideSettings() {
-  $('settingsView').style.display = 'none'
-  $('appMain').style.display = ''
+  showOnly('appMain')
 }
 
 export function isSettingsOpen(): boolean {

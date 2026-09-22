@@ -70,6 +70,7 @@
         <button class="account-btn" id="accountBtn" aria-label="Account"></button>
         <div class="account-panel" id="accountPanel">
           <div class="account-info" id="accountInfo"></div>
+          <button class="manage-link" id="budgetBtn">Budget</button>
           <button class="manage-link" id="settingsBtn">Settings</button>
           <button class="manage-link delete-link" id="logoutBtn">Log out</button>
         </div>
@@ -210,6 +211,72 @@
     <div class="card">
       <div class="section-label">Reminders</div>
       <div id="remindersManager"></div>
+    </div>
+  </div>
+
+  <div id="budgetView" style="display:none;">
+    <div class="settings-back-row"><button class="manage-link" id="budgetBackBtn">← Back</button></div>
+    <div class="budget-month-note" id="budgetMonthNote"></div>
+    <div class="card">
+      <div class="section-label">Budgets</div>
+      <div class="shop-budgets" id="budgetPetInputs" style="border-bottom:none; margin-bottom:0; padding-bottom:0;"></div>
+      <div class="field" style="margin-top:14px; margin-bottom:0;">
+        <label for="budget-misc">Miscellaneous / household budget</label>
+        <div class="dollar-field-wrap">
+          <span class="budget-dollar">$</span>
+          <input type="number" step="0.01" min="0" id="budget-misc" placeholder="e.g. 25">
+        </div>
+      </div>
+      <div class="section-label" style="margin-top:18px;">Miscellaneous expenses this month</div>
+      <div id="miscExpenseList"></div>
+      <div class="shopping-add-row" style="margin-top:10px;">
+        <input type="text" id="misc-expense-item" class="shop-input shop-input-item" placeholder="What did you buy?">
+        <input type="number" step="0.01" min="0" id="misc-expense-price" class="shop-input shop-input-price" placeholder="Price">
+        <button class="btn-secondary" id="miscExpenseAddBtn" style="margin-top:0;">Log it</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-label">Total budget vs. spent this month</div>
+      <div class="budget-hero">
+        <div class="budget-hero-amount" id="budgetHeroAmount"></div>
+        <div class="budget-hero-sub" id="budgetHeroSub"></div>
+      </div>
+      <div class="budget-bar-big"><div class="budget-bar-big-fill" id="budgetBarBig"></div></div>
+    </div>
+    <div class="card">
+      <div class="section-label">By animal (and misc)</div>
+      <div class="budget-row-list" id="budgetRowList"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">Share of budget spent</div>
+      <div class="budget-donut-wrap">
+        <svg id="budgetDonut" width="140" height="140" viewBox="0 0 140 140"></svg>
+        <div class="budget-donut-legend" id="budgetDonutLegend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="progress-row"><h2>Full Shopping List</h2></div>
+      <div class="section-text" style="margin-bottom:14px; color:var(--ink-soft); font-size:13px;">Every animal's list combined, for one trip to the store.</div>
+      <div class="shopping-table-wrap">
+        <table class="shopping-table">
+          <thead>
+            <tr><th></th><th>Item</th><th>Qty</th><th>Category</th><th>Due</th><th>Est. price</th><th>For</th><th></th></tr>
+          </thead>
+          <tbody id="fullShoppingBody"></tbody>
+        </table>
+      </div>
+      <div class="shopping-add-row">
+        <input type="text" id="full-shop-item" class="shop-input shop-input-item" placeholder="Item">
+        <input type="text" id="full-shop-qty" class="shop-input shop-input-qty" placeholder="Qty">
+        <select id="full-shop-cat" class="shop-input shop-input-cat">
+          <option>Food</option><option>Litter &amp; Bedding</option><option>Medical</option>
+          <option>Toys</option><option>Grooming</option><option>Tank/Enclosure</option><option>Other</option>
+        </select>
+        <input type="date" id="full-shop-due" class="shop-input shop-input-due">
+        <input type="number" step="0.01" min="0" id="full-shop-price" class="shop-input shop-input-price" placeholder="Est. price">
+        <select id="full-shop-for" class="shop-input shop-input-for"></select>
+        <button class="btn-secondary" id="fullShopAddBtn" style="margin-top:0;">Add</button>
+      </div>
     </div>
   </div>
 

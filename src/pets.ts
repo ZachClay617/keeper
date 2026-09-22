@@ -3,6 +3,7 @@ import { onPetSelected as notifyDailyPetSelected, onSignedOut as notifyDailySign
 import { onPetSelected as notifyLogPetSelected, onSignedOut as notifyLogSignedOut } from './careLog'
 import { onPetSelected as notifyShoppingPetSelected, onSignedOut as notifyShoppingSignedOut } from './shopping'
 import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } from './reminders'
+import { showOnly } from './views'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
 type PetStatus = 'active' | 'memorial'
@@ -161,7 +162,7 @@ function selectPet(id: string) {
   renderAll()
 }
 
-function setActiveTab(tab: string) {
+export function setActiveTab(tab: string) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', (t as HTMLElement).dataset.tab === tab))
   document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'))
   const panel = document.getElementById('panel-' + tab)
@@ -289,8 +290,7 @@ function renderMemorialView() {
 
 function showMemorialView(show: boolean) {
   viewingMemorial = show
-  $('appMain').style.display = show ? 'none' : ''
-  $('memorialView').style.display = show ? '' : 'none'
+  showOnly(show ? 'memorialView' : 'appMain')
   renderMemorialToggle()
   if (show) renderMemorialView()
 }
@@ -588,8 +588,7 @@ export async function onSignedIn() {
   await loadPets()
   renderAll()
   renderMemorialToggle()
-  $('appMain').style.display = ''
-  $('memorialView').style.display = 'none'
+  showOnly('appMain')
   await initReminders()
 }
 
