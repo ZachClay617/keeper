@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { onPetSelected as notifyDailyPetSelected, onSignedOut as notifyDailySignedOut } from './daily'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
 type PetStatus = 'active' | 'memorial'
@@ -212,9 +213,15 @@ function renderProfile() {
   }
 }
 
+let lastNotifiedPetId: string | null | undefined = undefined
+
 function renderAll() {
   renderSwitcher()
   renderProfile()
+  if (currentPetId !== lastNotifiedPetId) {
+    lastNotifiedPetId = currentPetId
+    notifyDailyPetSelected(currentPetId)
+  }
 }
 
 function renderMemorialToggle() {
@@ -574,5 +581,7 @@ export async function onSignedIn() {
 export function onSignedOut() {
   pets = []
   currentPetId = null
+  lastNotifiedPetId = undefined
   viewingMemorial = false
+  notifyDailySignedOut()
 }

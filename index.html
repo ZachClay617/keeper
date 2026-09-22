@@ -114,8 +114,17 @@
 
   <section class="panel" id="panel-daily">
     <div class="card">
-      <div class="progress-row"><h2>Daily Care</h2></div>
-      <div class="empty-state">Daily checklists are coming in the next build step.</div>
+      <div class="progress-row">
+        <h2 id="dailyHeading">Today</h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <select class="day-picker" id="dayPicker"></select>
+          <span class="progress-count" id="progressText"></span>
+        </div>
+      </div>
+      <div class="history-banner" id="historyBanner" style="display:none;"></div>
+      <div class="progress-track"><div class="progress-fill" id="progressBar"></div></div>
+      <div id="dailyList"></div>
+      <button class="add-row-btn" id="addItemBtn">+ Add care item</button>
     </div>
   </section>
 

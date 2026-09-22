@@ -92,6 +92,53 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
 
 .progress-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; gap: 10px; flex-wrap: wrap; }
 .progress-row h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.progress-count { font-size: 13.5px; color: var(--ink-soft); }
+.progress-track { height: 6px; border-radius: 4px; background: var(--mist); overflow: hidden; margin-bottom: 20px; }
+.progress-fill { height: 100%; background: var(--moss); transition: width 0.25s ease; }
+
+.day-picker {
+  font-family: inherit; font-size: 12.5px; padding: 5px 8px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+.history-banner {
+  background: var(--mist); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 12px; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 14px;
+}
+
+.care-row { display: flex; align-items: flex-start; gap: 12px; padding: 13px 2px; border-top: 1px solid var(--line); }
+.care-row:first-of-type { border-top: none; }
+.care-row.readonly { cursor: default; }
+.care-row.readonly .check-box { cursor: default; }
+.check-box {
+  width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--line); background: none;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  padding: 0; margin-top: 1px; transition: background 0.15s ease, border-color 0.15s ease;
+}
+.care-row.done .check-box { background: var(--moss); border-color: var(--moss); }
+.check-box::after {
+  content: ""; width: 6px; height: 10px; border-right: 2px solid var(--surface); border-bottom: 2px solid var(--surface);
+  transform: rotate(45deg) translate(-1px, -1px); opacity: 0;
+}
+.care-row.done .check-box::after { opacity: 1; }
+.care-main { flex: 1; min-width: 0; }
+.care-label-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.care-label { font-size: 15px; }
+.care-row.done .care-label { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--line); }
+.care-detail { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+.care-chip { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.care-time { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; padding-top: 2px; }
+.delete-btn {
+  background: none; border: none; color: var(--ink-soft); opacity: 0.5; font-size: 17px; line-height: 1;
+  padding: 3px 4px; cursor: pointer; flex-shrink: 0; margin-top: 1px;
+}
+.delete-btn:hover { opacity: 1; color: var(--clay); }
+
+.add-row-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px;
+  margin-top: 10px; border: 1.5px dashed var(--line); border-radius: 10px; background: none;
+  color: var(--ink-soft); font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: inherit;
+}
+.add-row-btn:hover { border-color: var(--moss); color: var(--moss-deep); }
 
 .profile-top { display: flex; gap: 20px; align-items: center; }
 .profile-emoji {
