@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { $, esc } from './dom'
 
 type LogCategory = 'Vet' | 'Vaccine' | 'Grooming' | 'Maintenance' | 'Checkup' | 'Other'
 
@@ -18,18 +19,6 @@ const categoryColor: Record<LogCategory, string> = {
   Maintenance: 'moss',
   Checkup: 'clay',
   Other: 'moss',
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
 }
 
 function formatDate(iso: string): string {
@@ -159,15 +148,19 @@ function wireStaticControls() {
   $('addLogBtn').addEventListener('click', openAddEntryModal)
 }
 
+let requestToken = 0
+
 export async function onPetSelected(petId: string | null) {
   if (!wired) {
     wireStaticControls()
     wired = true
   }
+  const token = ++requestToken
   currentPetId = petId
   entries = []
   if (petId) {
     await fetchEntries(petId)
+    if (token !== requestToken) return // a newer pet was selected while this was in flight
   }
   renderLog()
 }

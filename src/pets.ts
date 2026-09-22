@@ -4,6 +4,7 @@ import { onPetSelected as notifyLogPetSelected, onSignedOut as notifyLogSignedOu
 import { onPetSelected as notifyShoppingPetSelected, onSignedOut as notifyShoppingSignedOut } from './shopping'
 import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } from './reminders'
 import { showOnly } from './views'
+import { $, esc } from './dom'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
 type PetStatus = 'active' | 'memorial'
@@ -73,18 +74,6 @@ const speciesOptions: Partial<Record<PetType, string[]>> = {
     'Pictus catfish', 'Platy', 'Plecostomus (Pleco)', 'Puffer fish', 'Rainbowfish', 'Rasbora',
     'Rope fish', 'Rosy barb', 'Seahorse', 'Swordtail', 'Tang', 'Tetra', 'Tiger barb', 'Wrasse', 'Other',
   ],
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
 }
 
 let pets: Pet[] = []
@@ -218,6 +207,17 @@ function renderProfile() {
 }
 
 let lastNotifiedPetId: string | null | undefined = undefined
+
+/**
+ * Updates a pet's cached fields in place — call after any write to the pets
+ * table made outside pets.ts (e.g. the Shopping tab or Budget page editing
+ * monthly_budget), so this module's cache doesn't clobber the change on the
+ * next render with a stale value.
+ */
+export function patchCachedPet(id: string, fields: Partial<Pick<Pet, 'monthly_budget'>>) {
+  const pet = pets.find((p) => p.id === id)
+  if (pet) Object.assign(pet, fields)
+}
 
 /** Forces Daily Care / Shopping to recompute "today" — call after the account timezone changes. */
 export function refreshCurrentPet() {

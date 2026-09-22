@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { $, esc } from './dom'
 
 interface Reminder {
   id: string
@@ -12,23 +13,12 @@ interface Reminder {
 interface PetOption {
   id: string
   name: string
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
+  status: 'active' | 'memorial'
 }
 
 let wired = false
 let reminders: Reminder[] = []
-let activePetOptions: PetOption[] = []
+let allPetOptions: PetOption[] = []
 
 async function fetchReminders() {
   const { data, error } = await supabase
@@ -43,18 +33,22 @@ async function fetchReminders() {
   reminders = (data as unknown as Reminder[]) || []
 }
 
-async function fetchActivePets() {
-  const { data, error } = await supabase
-    .from('pets')
-    .select('id, name')
-    .eq('status', 'active')
-    .order('created_at', { ascending: true })
+async function fetchAllPets() {
+  const { data, error } = await supabase.from('pets').select('id, name, status').order('created_at', { ascending: true })
   if (error) {
     console.error('Failed to load pets for reminders', error)
-    activePetOptions = []
+    allPetOptions = []
     return
   }
-  activePetOptions = (data as PetOption[]) || []
+  allPetOptions = (data as PetOption[]) || []
+}
+
+/** Active pets, plus any memorialized pet that still has a reminder attached
+ * (so there's always a way to clean those up, instead of them becoming
+ * permanently invisible once the pet is memorialized). */
+function managerPetOptions(): PetOption[] {
+  const petIdsWithReminders = new Set(reminders.filter((r) => r.pet_id).map((r) => r.pet_id))
+  return allPetOptions.filter((p) => p.status === 'active' || petIdsWithReminders.has(p.id))
 }
 
 function visibleReminders(): Reminder[] {
@@ -95,18 +89,23 @@ function renderManager() {
   const generalReminders = reminders.filter((r) => !r.pet_id)
   const generalRows = generalReminders.map(reminderRowHtml).join('') || emptyRow()
 
-  const petsHtml = activePetOptions
+  const petsHtml = managerPetOptions()
     .map((pet) => {
       const petReminders = reminders.filter((r) => r.pet_id === pet.id)
       const rows = petReminders.map(reminderRowHtml).join('') || emptyRow()
+      const memorialNote = pet.status === 'memorial' ? ' (in memory — remove reminders here)' : ''
       return `
         <div class="reminder-pet-block">
-          <div class="reminder-pet-name">${esc(pet.name)}</div>
+          <div class="reminder-pet-name">${esc(pet.name)}${esc(memorialNote)}</div>
           ${rows}
-          <div class="reminder-add-row">
-            <input type="text" class="reminder-input" data-pet="${pet.id}" placeholder="Add a reminder for ${esc(pet.name)}">
-            <button class="btn-secondary reminder-add-btn" data-pet="${pet.id}" style="margin-top:0;">Add</button>
-          </div>
+          ${
+            pet.status === 'active'
+              ? `<div class="reminder-add-row">
+                  <input type="text" class="reminder-input" data-pet="${pet.id}" placeholder="Add a reminder for ${esc(pet.name)}">
+                  <button class="btn-secondary reminder-add-btn" data-pet="${pet.id}" style="margin-top:0;">Add</button>
+                </div>`
+              : ''
+          }
         </div>
       `
     })
@@ -194,7 +193,7 @@ export async function refreshReminders() {
 }
 
 export async function renderRemindersManager() {
-  await fetchActivePets()
+  await fetchAllPets()
   await fetchReminders()
   renderBell()
   renderManager()
@@ -202,7 +201,7 @@ export async function renderRemindersManager() {
 
 export function onSignedOut() {
   reminders = []
-  activePetOptions = []
+  allPetOptions = []
   const badge = document.getElementById('bellBadge')
   if (badge) badge.style.display = 'none'
   const list = document.getElementById('notifList')

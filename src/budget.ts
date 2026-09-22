@@ -1,7 +1,8 @@
 import { supabase } from './supabaseClient'
 import { currentMonthKey } from './timezone'
 import { showOnly } from './views'
-import { refreshCurrentPet } from './pets'
+import { refreshCurrentPet, patchCachedPet } from './pets'
+import { $, esc } from './dom'
 
 type ShopCategory = 'Food' | 'Litter & Bedding' | 'Medical' | 'Toys' | 'Grooming' | 'Tank/Enclosure' | 'Other'
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
@@ -52,18 +53,6 @@ const categoryColor: Record<ShopCategory, string> = {
   Grooming: 'moss',
   'Tank/Enclosure': 'moss',
   Other: 'moss',
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
 }
 
 function formatDate(iso: string | null): string {
@@ -143,6 +132,7 @@ function renderBudgetInputs() {
         }
         const pet = pets.find((p) => p.id === petId)
         if (pet) pet.monthly_budget = value
+        patchCachedPet(petId, { monthly_budget: value })
         renderHeroAndRows()
         refreshCurrentPet()
       })

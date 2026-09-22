@@ -3,18 +3,7 @@ import { timezoneOptions, setAccountTimezone, getAccountTimezone } from './timez
 import { refreshCurrentPet } from './pets'
 import { renderRemindersManager } from './reminders'
 import { showOnly } from './views'
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
-}
+import { $, esc } from './dom'
 
 let wired = false
 

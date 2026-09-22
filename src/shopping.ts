@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient'
 import { currentMonthKey } from './timezone'
+import { $, esc } from './dom'
+import { patchCachedPet } from './pets'
 
 type ShopCategory = 'Food' | 'Litter & Bedding' | 'Medical' | 'Toys' | 'Grooming' | 'Tank/Enclosure' | 'Other'
 
@@ -31,18 +33,6 @@ const categoryColor: Record<ShopCategory, string> = {
   Grooming: 'moss',
   'Tank/Enclosure': 'moss',
   Other: 'moss',
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
 }
 
 function formatDate(iso: string | null): string {
@@ -87,7 +77,10 @@ function renderBudgetField() {
     const monthly_budget = value ? Number(value) : null
     const { error } = await supabase.from('pets').update({ monthly_budget }).eq('id', currentPet.id)
     if (error) console.error(error)
-    else currentPet.monthly_budget = monthly_budget
+    else {
+      currentPet.monthly_budget = monthly_budget
+      patchCachedPet(currentPet.id, { monthly_budget })
+    }
   })
 }
 
@@ -230,15 +223,19 @@ function wireStaticControls() {
   })
 }
 
+let requestToken = 0
+
 export async function onPetSelected(pet: PetRef | null) {
   if (!wired) {
     wireStaticControls()
     wired = true
   }
+  const token = ++requestToken
   currentPet = pet
   items = []
   if (pet) {
     await fetchItems(pet.id)
+    if (token !== requestToken) return // a newer pet was selected while this was in flight
   }
   renderShopping()
 }

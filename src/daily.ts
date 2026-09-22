@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { todayKey } from './timezone'
+import { $, esc } from './dom'
 
 type Category = 'Feeding' | 'Exercise' | 'Medication' | 'Hygiene' | 'Environment' | 'Health'
 
@@ -20,18 +21,6 @@ const categoryColor: Record<Category, string> = {
   Hygiene: 'moss',
   Environment: 'moss',
   Health: 'clay',
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
 }
 
 function formatDateKey(key: string): string {
@@ -308,11 +297,14 @@ function wireStaticControls() {
   })
 }
 
+let requestToken = 0
+
 export async function onPetSelected(petId: string | null) {
   if (!wired) {
     wireStaticControls()
     wired = true
   }
+  const token = ++requestToken
   currentPetId = petId
   viewingDate = null
   items = []
@@ -320,8 +312,11 @@ export async function onPetSelected(petId: string | null) {
   historyDates = []
   if (petId) {
     await fetchItems(petId)
+    if (token !== requestToken) return // a newer pet was selected while this was in flight
     completedToday = await fetchCompletionsForDate(petId, todayKey())
+    if (token !== requestToken) return
     historyDates = await fetchHistoryDates(petId)
+    if (token !== requestToken) return
   }
   await renderDaily()
 }

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { showOnly } from './views'
+import { $, esc } from './dom'
 
 type SpeciesType = 'dog' | 'cat' | 'small_animal' | 'reptile' | 'fish'
 
@@ -21,18 +22,6 @@ const categoryLabels: Record<SpeciesType, string> = {
   small_animal: 'Small Animals',
   reptile: 'Reptiles',
   fish: 'Fish',
-}
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
-
-function esc(s: string): string {
-  const div = document.createElement('div')
-  div.textContent = s
-  return div.innerHTML
 }
 
 let wired = false

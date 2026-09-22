@@ -1,12 +1,7 @@
 import { supabase } from './supabaseClient'
 import { onSignedIn, onSignedOut } from './pets'
 import { setAccountTimezone } from './timezone'
-
-function $(id: string): HTMLElement {
-  const el = document.getElementById(id)
-  if (!el) throw new Error(`Missing #${id}`)
-  return el
-}
+import { $, esc } from './dom'
 
 function getInitials(text: string): string {
   const parts = text.trim().split(/\s+/).filter(Boolean)
@@ -68,7 +63,7 @@ async function renderAccountInfo() {
   const accountBtn = $('accountBtn')
   const accountInfo = $('accountInfo')
   accountBtn.textContent = getInitials(name || user.email || '?')
-  accountInfo.innerHTML = `<strong>${name || 'Your account'}</strong>${user.email ?? ''}`
+  accountInfo.innerHTML = `<strong>${esc(name || 'Your account')}</strong>${esc(user.email ?? '')}`
 }
 
 function wirePasswordToggles() {
@@ -169,6 +164,24 @@ function wireAccountPanel() {
   })
 }
 
+// Tracks which user (if any) the app has actually rendered for, so events like
+// TOKEN_REFRESHED or the INITIAL_SESSION event onAuthStateChange fires on
+// subscribe don't re-run the full sign-in flow and reset the user's current view.
+let renderedForUserId: string | null = null
+
+async function syncToSession(session: { user: { id: string } } | null) {
+  const userId = session?.user.id ?? null
+  if (userId === renderedForUserId) return
+  renderedForUserId = userId
+
+  if (session) {
+    await renderAccountInfo()
+    await showApp()
+  } else {
+    showAuth()
+  }
+}
+
 export async function initAuth() {
   wirePasswordToggles()
   wireAuthTabs()
@@ -180,20 +193,9 @@ export async function initAuth() {
   const {
     data: { session },
   } = await supabase.auth.getSession()
-
-  if (session) {
-    await renderAccountInfo()
-    await showApp()
-  } else {
-    showAuth()
-  }
+  await syncToSession(session)
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (session) {
-      await renderAccountInfo()
-      await showApp()
-    } else {
-      showAuth()
-    }
+    await syncToSession(session)
   })
 }
