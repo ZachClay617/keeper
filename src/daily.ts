@@ -3,6 +3,23 @@ import { todayKey } from './timezone'
 import { $, esc } from './dom'
 
 type Category = 'Feeding' | 'Exercise' | 'Medication' | 'Hygiene' | 'Environment' | 'Health'
+type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
+
+interface PetRef {
+  id: string
+  name: string
+  type: PetType
+}
+
+const typeEmoji: Record<PetType, string> = {
+  dog: '🐕',
+  cat: '🐈',
+  small_animal: '🐹',
+  bird: '🐦',
+  reptile: '🦎',
+  fish: '🐠',
+  other: '🐾',
+}
 
 interface DailyCareItem {
   id: string
@@ -51,6 +68,7 @@ interface PlannedTask {
 }
 
 let currentPetId: string | null = null
+let currentPet: PetRef | null = null
 let items: DailyCareItem[] = []
 let completedToday = new Set<string>()
 let historyDates: string[] = []
@@ -60,6 +78,8 @@ let plannedForTomorrow: PlannedTask[] = []
 let plannedForToday: PlannedTask[] = []
 let plannedForViewingDate: PlannedTask[] = []
 let planTomorrowOpen = false
+/** `${petId}:${dateKey}` combos that have already gotten their "all done" thank-you toast. */
+const thanksShown = new Set<string>()
 
 async function fetchItems(petId: string) {
   const { data, error } = await supabase
@@ -188,6 +208,7 @@ async function removeTomorrowTask(taskId: string) {
 async function togglePlannedToday(taskId: string) {
   const task = plannedForToday.find((t) => t.id === taskId)
   if (!task) return
+  const wasChecking = !task.done
   const { error } = await supabase.from('planned_tasks').update({ done: !task.done }).eq('id', taskId)
   if (error) {
     console.error(error)
@@ -195,6 +216,7 @@ async function togglePlannedToday(taskId: string) {
   }
   task.done = !task.done
   await renderDaily()
+  celebrateIfAllDone(wasChecking)
 }
 
 function renderDayPicker() {
@@ -344,6 +366,7 @@ function updateProgress() {
 async function toggleCompletion(itemId: string) {
   if (!currentPetId) return
   const date = todayKey()
+  const wasChecking = !completedToday.has(itemId)
   if (completedToday.has(itemId)) {
     const { error } = await supabase
       .from('daily_completions')
@@ -366,6 +389,7 @@ async function toggleCompletion(itemId: string) {
     completedToday.add(itemId)
   }
   await renderDaily()
+  celebrateIfAllDone(wasChecking)
 }
 
 async function deleteItem(itemId: string) {
@@ -519,15 +543,57 @@ function wireStaticControls() {
   })
 }
 
+// ── "All done for today" thank-you message ──────────────────────────────
+
+const thankYouMessages = [
+  'Thank you for taking such good care of me today!',
+  "You're the best. Everything's done and I couldn't be happier!",
+  "All my tasks are done, and I feel so loved. Thank you!",
+  'Another great day thanks to you. Love you!',
+  "You never miss a beat with me. I'm so grateful!",
+  "Every single thing, done with love. Thank you for today!",
+]
+
+function showThanksToast(pet: PetRef) {
+  const wrap = $('alarmToastWrap')
+  const toast = document.createElement('div')
+  toast.className = 'alarm-toast thanks-toast'
+  const message = thankYouMessages[Math.floor(Math.random() * thankYouMessages.length)]
+  toast.innerHTML = `
+    <span class="alarm-toast-icon">${typeEmoji[pet.type]}</span>
+    <span class="alarm-toast-text"><strong>${esc(pet.name)}:</strong> ${esc(message)}</span>
+    <button class="alarm-toast-dismiss" aria-label="Dismiss">×</button>
+  `
+  toast.querySelector('.alarm-toast-dismiss')!.addEventListener('click', () => toast.remove())
+  wrap.appendChild(toast)
+  setTimeout(() => toast.remove(), 15000)
+}
+
+/** Call right after a check (not uncheck) toggle — fires the thank-you toast once per pet per day, the moment the last today's-task is checked off. */
+function celebrateIfAllDone(justChecked: boolean) {
+  if (!justChecked || viewingDate || !currentPetId || !currentPet) return
+  const todayItems = items.filter((i) => itemShowsOn(i, todayKey()))
+  const total = todayItems.length + plannedForToday.length
+  if (!total) return
+  const done = todayItems.filter((i) => completedToday.has(i.id)).length + plannedForToday.filter((t) => t.done).length
+  if (done !== total) return
+  const key = `${currentPetId}:${todayKey()}`
+  if (thanksShown.has(key)) return
+  thanksShown.add(key)
+  showThanksToast(currentPet)
+}
+
 let requestToken = 0
 
-export async function onPetSelected(petId: string | null) {
+export async function onPetSelected(pet: PetRef | null) {
   if (!wired) {
     wireStaticControls()
     wired = true
   }
   const token = ++requestToken
+  const petId = pet?.id ?? null
   currentPetId = petId
+  currentPet = pet
   viewingDate = null
   items = []
   completedToday = new Set()
@@ -552,6 +618,7 @@ export async function onPetSelected(petId: string | null) {
 
 export function onSignedOut() {
   currentPetId = null
+  currentPet = null
   items = []
   completedToday = new Set()
   historyDates = []
@@ -559,4 +626,5 @@ export function onSignedOut() {
   plannedForTomorrow = []
   plannedForToday = []
   planTomorrowOpen = false
+  thanksShown.clear()
 }

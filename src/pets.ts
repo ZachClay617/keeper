@@ -384,20 +384,20 @@ export function patchCachedPet(id: string, fields: Partial<Pick<Pet, 'monthly_bu
 
 /** Forces Daily Care / Shopping to recompute "today" — call after the account timezone changes. */
 export function refreshCurrentPet() {
-  notifyDailyPetSelected(currentPetId)
   const pet = activePets().find((p) => p.id === currentPetId) || null
+  notifyDailyPetSelected(pet ? { id: pet.id, name: pet.name, type: pet.type } : null)
   notifyShoppingPetSelected(pet ? { id: pet.id, name: pet.name, monthly_budget: pet.monthly_budget } : null)
 }
 
 function renderAll() {
   renderSwitcher()
   renderProfile()
+  const pet = activePets().find((p) => p.id === currentPetId) || null
   if (currentPetId !== lastNotifiedPetId) {
     lastNotifiedPetId = currentPetId
-    notifyDailyPetSelected(currentPetId)
+    notifyDailyPetSelected(pet ? { id: pet.id, name: pet.name, type: pet.type } : null)
     notifyLogPetSelected(currentPetId)
   }
-  const pet = activePets().find((p) => p.id === currentPetId) || null
   notifyShoppingPetSelected(pet ? { id: pet.id, name: pet.name, monthly_budget: pet.monthly_budget } : null)
   refreshReminders()
 }

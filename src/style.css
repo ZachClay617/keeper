@@ -334,6 +334,12 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
 .alarm-toast-dismiss { background: none; border: none; color: var(--ink-soft); font-size: 16px; cursor: pointer; padding: 2px 4px; }
 @keyframes alarm-toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
+.thanks-toast {
+  border-color: var(--moss);
+  background: color-mix(in srgb, var(--moss) 10%, var(--surface));
+}
+.thanks-toast .alarm-toast-icon { font-size: 20px; }
+
 .shopping-table-wrap { overflow-x: auto; }
 .shopping-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .shopping-table th {
