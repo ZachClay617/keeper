@@ -41,8 +41,36 @@
       </div>
       <div class="auth-error" id="loginError"></div>
       <button class="btn-primary btn-block" id="loginSubmit">Log in</button>
+      <button type="button" class="manage-link" id="forgotPasswordLink" style="margin-top:12px;">Forgot password?</button>
+    </div>
+    <div class="auth-panel" id="auth-forgot">
+      <div class="field"><label for="fp-email">Email</label><input id="fp-email" type="email" placeholder="you@email.com"></div>
+      <div class="auth-error" id="forgotError"></div>
+      <button class="btn-primary btn-block" id="forgotSubmit">Send reset link</button>
+      <button type="button" class="manage-link" id="forgotBackLink" style="margin-top:12px;">← Back to log in</button>
     </div>
     <div class="auth-note" id="authNote">Real accounts, backed by Supabase.</div>
+  </div>
+</div>
+
+<div id="resetPasswordView" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-wordmark">🐾 Keeper</div>
+    <div class="auth-tagline">Choose a new password</div>
+    <div class="field"><label for="rp-password">New password</label>
+      <div class="password-wrap">
+        <input id="rp-password" type="password" placeholder="At least 6 characters">
+        <button type="button" class="password-toggle" data-target="rp-password">Show</button>
+      </div>
+    </div>
+    <div class="field"><label for="rp-password2">Confirm new password</label>
+      <div class="password-wrap">
+        <input id="rp-password2" type="password" placeholder="Repeat password">
+        <button type="button" class="password-toggle" data-target="rp-password2">Show</button>
+      </div>
+    </div>
+    <div class="auth-error" id="resetPasswordError"></div>
+    <button class="btn-primary btn-block" id="resetPasswordSubmit">Set new password</button>
   </div>
 </div>
 

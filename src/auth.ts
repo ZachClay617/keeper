@@ -147,6 +147,70 @@ function wireLogin() {
   })
 }
 
+function wireForgotPassword() {
+  $('forgotPasswordLink').addEventListener('click', () => {
+    $('auth-signup').classList.remove('active')
+    $('auth-login').classList.remove('active')
+    $('auth-forgot').classList.add('active')
+    document.querySelector('.auth-card')?.classList.add('forgot-mode')
+    ;($('fp-email') as HTMLInputElement).value = ($('li-email') as HTMLInputElement).value
+    clearError('forgotError')
+  })
+
+  $('forgotBackLink').addEventListener('click', () => {
+    $('auth-forgot').classList.remove('active')
+    document.querySelector('.auth-card')?.classList.remove('forgot-mode')
+    document.querySelector<HTMLButtonElement>('[data-authtab="login"]')?.click()
+  })
+
+  $('forgotSubmit').addEventListener('click', async () => {
+    clearError('forgotError')
+    const email = ($('fp-email') as HTMLInputElement).value.trim()
+    if (!email) return showError('forgotError', 'Enter your email.')
+
+    const submit = $('forgotSubmit') as HTMLButtonElement
+    setLoading(submit, 'Sending…')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+    clearLoading(submit)
+
+    if (error) return showError('forgotError', error.message)
+
+    $('auth-forgot').classList.remove('active')
+    document.querySelector('.auth-card')?.classList.remove('forgot-mode')
+    document.querySelector<HTMLButtonElement>('[data-authtab="login"]')?.click()
+    $('authNote').textContent = 'Check your email for a password reset link.'
+  })
+}
+
+function showResetPassword() {
+  $('authView').style.display = 'none'
+  $('mainApp').style.display = 'none'
+  $('resetPasswordView').style.display = 'flex'
+}
+
+function wireResetPassword() {
+  $('resetPasswordSubmit').addEventListener('click', async () => {
+    clearError('resetPasswordError')
+    const p1 = ($('rp-password') as HTMLInputElement).value
+    const p2 = ($('rp-password2') as HTMLInputElement).value
+
+    if (p1.length < 6) return showError('resetPasswordError', 'Password must be at least 6 characters.')
+    if (p1 !== p2) return showError('resetPasswordError', 'Passwords don’t match.')
+
+    const submit = $('resetPasswordSubmit') as HTMLButtonElement
+    setLoading(submit, 'Saving…')
+    const { error } = await supabase.auth.updateUser({ password: p1 })
+    clearLoading(submit)
+
+    if (error) return showError('resetPasswordError', error.message)
+
+    inPasswordRecovery = false
+    $('resetPasswordView').style.display = 'none'
+    await renderAccountInfo()
+    await showApp()
+  })
+}
+
 function wireLogout() {
   $('logoutBtn').addEventListener('click', async () => {
     $('accountPanel').classList.remove('open')
@@ -172,6 +236,11 @@ function wireAccountPanel() {
 // subscribe don't re-run the full sign-in flow and reset the user's current view.
 let renderedForUserId: string | null = null
 
+// True from the moment a password-recovery link is opened until the user
+// finishes setting a new password — suppresses the normal session-sync flow
+// so a recovery session doesn't drop the user straight into the app.
+let inPasswordRecovery = false
+
 async function syncToSession(session: { user: { id: string } } | null) {
   const userId = session?.user.id ?? null
   if (userId === renderedForUserId) return
@@ -190,6 +259,8 @@ export async function initAuth() {
   wireAuthTabs()
   wireSignup()
   wireLogin()
+  wireForgotPassword()
+  wireResetPassword()
   wireLogout()
   wireAccountPanel()
 
@@ -198,7 +269,14 @@ export async function initAuth() {
   } = await supabase.auth.getSession()
   await syncToSession(session)
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      inPasswordRecovery = true
+      renderedForUserId = session?.user.id ?? null
+      showResetPassword()
+      return
+    }
+    if (inPasswordRecovery) return
     await syncToSession(session)
   })
 }

@@ -402,7 +402,7 @@ tr.got .shop-check::after { opacity: 1; }
 }
 .btn-secondary:hover { background: var(--mist); }
 
-#authView { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+#authView, #resetPasswordView { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .auth-card {
   background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
   padding: 36px 30px; width: 100%; max-width: 380px;
@@ -420,6 +420,7 @@ tr.got .shop-check::after { opacity: 1; }
 .auth-tab.active { background: var(--surface); color: var(--moss-deep); box-shadow: 0 1px 2px var(--line); }
 .auth-panel { display: none; }
 .auth-panel.active { display: block; }
+.auth-card.forgot-mode .auth-tabs { display: none; }
 .auth-note { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 16px; }
 .auth-error {
   display: none; font-size: 13px; color: var(--clay); background: color-mix(in srgb, var(--clay) 12%, transparent);
