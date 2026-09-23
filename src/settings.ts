@@ -1,9 +1,11 @@
 import { supabase } from './supabaseClient'
 import { timezoneOptions, setAccountTimezone, getAccountTimezone } from './timezone'
 import { paletteOptions, applyPalette } from './palette'
+import { currencyOptions, setAccountCurrency, getAccountCurrency } from './currency'
 import { renderAccountAvatar } from './auth'
 import { uploadPhoto } from './imageUpload'
 import { refreshCurrentPet } from './pets'
+import { refreshBudgetCurrency } from './budget'
 import { renderRemindersManager } from './reminders'
 import { showOnly } from './views'
 import { $, esc } from './dom'
@@ -52,6 +54,29 @@ function populateTimezoneSelect() {
   const select = $('set-timezone') as HTMLSelectElement
   select.innerHTML = timezoneOptions.map((tz) => `<option value="${tz.value}">${esc(tz.label)}</option>`).join('')
   select.value = getAccountTimezone()
+}
+
+function populateCurrencySelect() {
+  const select = $('set-currency') as HTMLSelectElement
+  select.innerHTML = currencyOptions.map((c) => `<option value="${c.value}">${esc(c.symbol)} — ${esc(c.label)}</option>`).join('')
+  select.value = getAccountCurrency()
+}
+
+async function saveCurrency() {
+  const select = $('set-currency') as HTMLSelectElement
+  const value = select.value
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+  const { error } = await supabase.from('profiles').update({ currency: value }).eq('id', user.id)
+  if (error) {
+    console.error(error)
+    return
+  }
+  setAccountCurrency(value)
+  refreshCurrentPet()
+  await refreshBudgetCurrency()
 }
 
 function renderPaletteOptions() {
@@ -104,6 +129,7 @@ async function renderSettings() {
   ;($('set-password2') as HTMLInputElement).value = ''
   $('passwordNote').textContent = ''
   populateTimezoneSelect()
+  populateCurrencySelect()
   currentPalette = profile?.color_palette || 'sage'
   renderPaletteOptions()
   clearNote('profileNote')
@@ -211,6 +237,7 @@ function wireStaticControls() {
   $('saveProfileBtn').addEventListener('click', saveProfile)
   $('savePasswordBtn').addEventListener('click', savePassword)
   $('set-timezone').addEventListener('change', saveTimezone)
+  $('set-currency').addEventListener('change', saveCurrency)
   $('settingsBackBtn').addEventListener('click', hideSettings)
   $('avatarUploadBtn').addEventListener('click', () => $('avatarFileInput').click())
   $('avatarFileInput').addEventListener('change', (e) => {

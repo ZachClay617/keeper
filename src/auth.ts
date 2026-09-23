@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import { onSignedIn, onSignedOut } from './pets'
 import { setAccountTimezone } from './timezone'
 import { applyPalette } from './palette'
+import { setAccountCurrency } from './currency'
 import { runMonthlyShoppingArchive } from './shoppingArchive'
 import { $, esc } from './dom'
 
@@ -55,6 +56,7 @@ function showAuth() {
   $('mainApp').style.display = 'none'
   $('authView').style.display = 'flex'
   applyPalette(null)
+  setAccountCurrency(null)
   onSignedOut()
 }
 
@@ -67,12 +69,13 @@ async function renderAccountInfo() {
   let name = ''
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, timezone, color_palette, last_shopping_reset_month, avatar_url')
+    .select('name, timezone, color_palette, currency, last_shopping_reset_month, avatar_url')
     .eq('id', user.id)
     .single()
   if (profile?.name) name = profile.name
   setAccountTimezone(profile?.timezone)
   applyPalette(profile?.color_palette)
+  setAccountCurrency(profile?.currency)
   await runMonthlyShoppingArchive(user.id, profile?.last_shopping_reset_month ?? null)
 
   const accountInfo = $('accountInfo')

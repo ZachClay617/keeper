@@ -282,6 +282,10 @@
       <div class="palette-options" id="paletteOptions"></div>
     </div>
     <div class="card">
+      <div class="section-label">Currency</div>
+      <div class="field"><label for="set-currency">Used for every price shown in the app</label><select id="set-currency"></select></div>
+    </div>
+    <div class="card">
       <div class="section-label">Reminders</div>
       <div id="remindersManager"></div>
     </div>
@@ -304,7 +308,7 @@
       <div class="field" style="margin-top:14px; margin-bottom:0;">
         <label for="budget-misc">Miscellaneous / household budget</label>
         <div class="dollar-field-wrap">
-          <span class="budget-dollar">$</span>
+          <span class="budget-dollar" id="budgetMiscDollar">$</span>
           <input type="number" step="0.01" min="0" id="budget-misc" placeholder="e.g. 25">
         </div>
       </div>

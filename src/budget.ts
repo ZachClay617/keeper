@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import { currentMonthKey } from './timezone'
 import { showOnly } from './views'
 import { refreshCurrentPet, patchCachedPet } from './pets'
+import { currencySymbol, formatMoney } from './currency'
 import { $, esc } from './dom'
 
 type ShopCategory = 'Food' | 'Litter & Bedding' | 'Medical' | 'Toys' | 'Grooming' | 'Tank/Enclosure' | 'Other'
@@ -189,7 +190,7 @@ function renderBudgetInputs() {
       .map(
         (p) => `
         <label class="shop-budget-item"><span class="pet-emoji-sm">${typeEmoji[p.type]}</span>${esc(p.name)}
-          <span class="budget-readonly-value">${p.monthly_budget != null ? '$' + Number(p.monthly_budget).toFixed(2) : 'No budget set'}</span>
+          <span class="budget-readonly-value">${p.monthly_budget != null ? formatMoney(Number(p.monthly_budget)) : 'No budget set'}</span>
         </label>
       `
       )
@@ -199,7 +200,7 @@ function renderBudgetInputs() {
       .map(
         (p) => `
         <label class="shop-budget-item"><span class="pet-emoji-sm">${typeEmoji[p.type]}</span>${esc(p.name)}
-          <span class="budget-dollar">$</span>
+          <span class="budget-dollar">${currencySymbol()}</span>
           <input type="number" step="0.01" min="0" class="budget-input pet-budget-input" data-pet="${p.id}" placeholder="No budget" value="${p.monthly_budget ?? ''}">
         </label>
       `
@@ -223,6 +224,7 @@ function renderBudgetInputs() {
     })
   }
 
+  $('budgetMiscDollar').textContent = currencySymbol()
   const miscInput = $('budget-misc') as HTMLInputElement
   if (readonly) {
     miscInput.value = miscBudget != null ? String(miscBudget) : ''
@@ -261,7 +263,7 @@ function renderMiscExpenseList() {
     .map(
       (i) => `
       <div class="reminder-row" data-id="${i.id}">
-        <span class="care-label">${esc(i.item)}${i.est_price != null ? ` — $${Number(i.est_price).toFixed(2)}` : ''}</span>
+        <span class="care-label">${esc(i.item)}${i.est_price != null ? ` — ${formatMoney(Number(i.est_price))}` : ''}</span>
         ${readonly ? '' : `<button class="delete-btn misc-expense-delete" data-id="${i.id}" aria-label="Remove expense">×</button>`}
       </div>
     `
@@ -315,8 +317,8 @@ function renderHeroAndRows() {
   const overBudget = totalBudget > 0 && totalSpent > totalBudget
 
   $('budgetHeroAmount').innerHTML =
-    `<span class="${overBudget ? 'over' : ''}">$${totalSpent.toFixed(2)}</span> ` +
-    `<span style="font-size:18px; color:var(--ink-soft); font-weight:400;">of $${totalBudget.toFixed(2)}</span>`
+    `<span class="${overBudget ? 'over' : ''}">${formatMoney(totalSpent)}</span> ` +
+    `<span style="font-size:18px; color:var(--ink-soft); font-weight:400;">of ${formatMoney(totalBudget)}</span>`
   $('budgetHeroSub').textContent =
     totalBudget > 0
       ? `${Math.round((totalSpent / totalBudget) * 100)}% of ${viewingMonth ? "that month's" : "this month's"} total budget${overBudget ? ' — over budget' : ''}`
@@ -334,8 +336,8 @@ function renderHeroAndRows() {
       const pct = hasBudget ? Math.min(100, (r.spent / (r.budget as number)) * 100) : r.spent > 0 ? 100 : 0
       const rOver = hasBudget && r.spent > (r.budget as number)
       const amounts = hasBudget
-        ? `$${r.spent.toFixed(2)} of $${(r.budget as number).toFixed(2)}`
-        : `$${r.spent.toFixed(2)} spent — no budget set`
+        ? `${formatMoney(r.spent)} of ${formatMoney(r.budget as number)}`
+        : `${formatMoney(r.spent)} spent — no budget set`
       return `
         <div class="budget-row-item${hasBudget ? '' : ' no-budget'}">
           <div class="budget-row-top"><span class="label">${r.emoji} ${esc(r.label)}</span><span class="amounts">${amounts}</span></div>
@@ -370,8 +372,8 @@ function renderDonut(rows: RowData[], totalBudget: number, totalSpent: number) {
     <text x="${c}" y="${c + 16}" text-anchor="middle" style="font-size: 10.5px; fill: var(--ink-soft);">spent</text>
   `
   legend.innerHTML = `
-    <div class="legend-row"><span class="swatch" style="background:${spentColor};"></span>Spent — $${totalSpent.toFixed(2)}</div>
-    <div class="legend-row"><span class="swatch" style="background: var(--mist);"></span>${over ? 'Over budget by' : 'Remaining'} — $${Math.abs(totalBudget - totalSpent).toFixed(2)}</div>
+    <div class="legend-row"><span class="swatch" style="background:${spentColor};"></span>Spent — ${formatMoney(totalSpent)}</div>
+    <div class="legend-row"><span class="swatch" style="background: var(--mist);"></span>${over ? 'Over budget by' : 'Remaining'} — ${formatMoney(Math.abs(totalBudget - totalSpent))}</div>
   `
   void rows
 }
@@ -440,7 +442,7 @@ async function renderTrendChart() {
     })
     bars += `<text x="${cx}" y="${H - 6}" text-anchor="middle" style="font-size:11px; fill:var(--ink-soft);">${esc(monthLabelShort(mk))}</text>`
     if (monthTotals[i] > 0) {
-      bars += `<text x="${cx}" y="${Math.max(padTop - 2, H - padBottom - (monthTotals[i] / maxTotal) * chartH - 6)}" text-anchor="middle" style="font-size:10px; fill:var(--ink-soft);">$${monthTotals[i].toFixed(0)}</text>`
+      bars += `<text x="${cx}" y="${Math.max(padTop - 2, H - padBottom - (monthTotals[i] / maxTotal) * chartH - 6)}" text-anchor="middle" style="font-size:10px; fill:var(--ink-soft);">${currencySymbol()}${monthTotals[i].toFixed(0)}</text>`
     }
   })
   svg.innerHTML = bars || `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" style="font-size:13px; fill:var(--ink-soft);">No spending logged yet.</text>`
@@ -476,7 +478,7 @@ function renderFullShoppingTable() {
           <td>${item.qty ? esc(item.qty) : ''}</td>
           <td><span class="care-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${item.category}</span></td>
           <td>${esc(formatDate(item.due_date))}</td>
-          <td>${item.est_price != null ? '$' + Number(item.est_price).toFixed(2) : '—'}</td>
+          <td>${item.est_price != null ? formatMoney(Number(item.est_price)) : '—'}</td>
           <td>${forLabel}</td>
           <td><button class="delete-btn" aria-label="Remove item">×</button></td>
         </tr>
@@ -635,4 +637,10 @@ export async function showBudget() {
 
 export function hideBudget() {
   showOnly('appMain')
+}
+
+/** Re-renders the budget page's money displays after the account currency changes — a no-op if the page isn't open. */
+export async function refreshBudgetCurrency() {
+  if ($('budgetView').style.display === 'none') return
+  await renderBudget()
 }

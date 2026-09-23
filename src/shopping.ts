@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import { currentMonthKey } from './timezone'
 import { $, esc } from './dom'
 import { patchCachedPet } from './pets'
+import { currencySymbol, formatMoney } from './currency'
 
 type ShopCategory = 'Food' | 'Litter & Bedding' | 'Medical' | 'Toys' | 'Grooming' | 'Tank/Enclosure' | 'Other'
 
@@ -68,7 +69,7 @@ function renderBudgetField() {
   }
   wrap.innerHTML = `
     <label class="shop-budget-item">Monthly budget for ${esc(currentPet.name)}
-      <span class="budget-dollar">$</span>
+      <span class="budget-dollar">${currencySymbol()}</span>
       <input type="number" step="0.01" min="0" class="budget-input" id="petBudgetInput" placeholder="No budget" value="${currentPet.monthly_budget ?? ''}">
     </label>
   `
@@ -117,7 +118,7 @@ function renderShopping() {
             <td>${item.qty ? esc(item.qty) : ''}</td>
             <td><span class="care-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${item.category}</span></td>
             <td>${esc(formatDate(item.due_date))}</td>
-            <td>${item.est_price != null ? '$' + Number(item.est_price).toFixed(2) : '—'}</td>
+            <td>${item.est_price != null ? formatMoney(Number(item.est_price)) : '—'}</td>
             <td><button class="delete-btn" aria-label="Remove item">×</button></td>
           </tr>
         `
