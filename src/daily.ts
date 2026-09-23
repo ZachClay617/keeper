@@ -11,7 +11,14 @@ interface DailyCareItem {
   time: string | null
   category: Category
   detail: string | null
+  recurring: boolean
+  date: string | null
   created_at: string
+}
+
+/** Recurring items show every day; a non-recurring item only shows on the one day it was assigned. */
+function itemShowsOn(item: DailyCareItem, dateKey: string): boolean {
+  return item.recurring || item.date === dateKey
 }
 
 function formatDateKey(key: string): string {
@@ -231,6 +238,7 @@ async function renderDaily() {
 
     const dayCompletions = await fetchCompletionsForDate(currentPetId, viewingDate)
     plannedForViewingDate = await fetchPlannedTasks(currentPetId, viewingDate)
+    const dayItems = items.filter((i) => itemShowsOn(i, viewingDate!))
     list.innerHTML = ''
     plannedForViewingDate.forEach((task) => {
       const row = document.createElement('div')
@@ -247,10 +255,10 @@ async function renderDaily() {
       `
       list.appendChild(row)
     })
-    if (!items.length && !plannedForViewingDate.length) {
+    if (!dayItems.length && !plannedForViewingDate.length) {
       list.innerHTML = '<div class="empty-state">No record for this day.</div>'
     } else {
-      items.forEach((item) => {
+      dayItems.forEach((item) => {
         const done = dayCompletions.has(item.id)
         const row = document.createElement('div')
         row.className = 'care-row readonly' + (done ? ' done' : '')
@@ -260,6 +268,7 @@ async function renderDaily() {
             <div class="care-label-row">
               <span class="care-label">${esc(item.label)}</span>
               <span class="care-chip">${item.category}</span>
+              ${!item.recurring ? '<span class="care-chip one-off-chip">One-time</span>' : ''}
             </div>
             ${item.detail ? `<div class="care-detail">${esc(item.detail)}</div>` : ''}
           </div>
@@ -268,8 +277,8 @@ async function renderDaily() {
         list.appendChild(row)
       })
     }
-    const total = items.length + plannedForViewingDate.length
-    const done = items.filter((i) => dayCompletions.has(i.id)).length + plannedForViewingDate.filter((t) => t.done).length
+    const total = dayItems.length + plannedForViewingDate.length
+    const done = dayItems.filter((i) => dayCompletions.has(i.id)).length + plannedForViewingDate.filter((t) => t.done).length
     $('progressText').textContent = `${done} of ${total} done`
     ;($('progressBar') as HTMLElement).style.width = (total ? (done / total) * 100 : 0) + '%'
     return
@@ -296,10 +305,11 @@ async function renderDaily() {
     `
     list.appendChild(row)
   })
-  if (!items.length && !plannedForToday.length) {
+  const todayItems = items.filter((i) => itemShowsOn(i, todayKey()))
+  if (!todayItems.length && !plannedForToday.length) {
     list.innerHTML = '<div class="empty-state">No care items yet — add one to get started.</div>'
   } else {
-    items.forEach((item) => {
+    todayItems.forEach((item) => {
       const checked = completedToday.has(item.id)
       const row = document.createElement('div')
       row.className = 'care-row' + (checked ? ' done' : '')
@@ -310,6 +320,7 @@ async function renderDaily() {
           <div class="care-label-row">
             <span class="care-label">${esc(item.label)}</span>
             <span class="care-chip">${item.category}</span>
+            ${!item.recurring ? '<span class="care-chip one-off-chip">One-time</span>' : ''}
           </div>
           ${item.detail ? `<div class="care-detail">${esc(item.detail)}</div>` : ''}
         </div>
@@ -323,8 +334,9 @@ async function renderDaily() {
 }
 
 function updateProgress() {
-  const total = items.length + plannedForToday.length
-  const done = items.filter((i) => completedToday.has(i.id)).length + plannedForToday.filter((t) => t.done).length
+  const todayItems = items.filter((i) => itemShowsOn(i, todayKey()))
+  const total = todayItems.length + plannedForToday.length
+  const done = todayItems.filter((i) => completedToday.has(i.id)).length + plannedForToday.filter((t) => t.done).length
   $('progressText').textContent = `${done} of ${total} done today`
   ;($('progressBar') as HTMLElement).style.width = (total ? (done / total) * 100 : 0) + '%'
 }
@@ -383,11 +395,23 @@ function openAddItemModal() {
       </select>
     </div>
     <div class="field"><label for="f-detail">Detail (optional)</label><input id="f-detail" type="text" placeholder="e.g. amount, dose, instructions"></div>
+    <div class="field checkbox-field">
+      <label><input type="checkbox" id="f-recurring" checked> Repeat every day</label>
+    </div>
+    <div class="field" id="f-oneoff-date-wrap" style="display:none;">
+      <label for="f-oneoff-date">Just for this day</label>
+      <input id="f-oneoff-date" type="date" value="${viewingDate || todayKey()}">
+    </div>
     <div class="auth-error" id="dailyFormError"></div>
     <button class="btn-primary btn-block" id="modalSubmit">Add item</button>
   `
   $('modalOverlay').classList.add('open')
   $('modalSubmit').addEventListener('click', handleAddItemSubmit)
+  const recurringCheckbox = $('f-recurring') as HTMLInputElement
+  const dateWrap = $('f-oneoff-date-wrap')
+  recurringCheckbox.addEventListener('change', () => {
+    dateWrap.style.display = recurringCheckbox.checked ? 'none' : ''
+  })
 }
 
 function closeModal() {
@@ -405,10 +429,20 @@ async function handleAddItemSubmit() {
   const time = (document.getElementById('f-time') as HTMLInputElement).value.trim()
   const category = (document.getElementById('f-cat') as HTMLSelectElement).value as Category
   const detail = (document.getElementById('f-detail') as HTMLInputElement).value.trim()
+  const recurring = (document.getElementById('f-recurring') as HTMLInputElement).checked
+  const oneOffDate = (document.getElementById('f-oneoff-date') as HTMLInputElement).value
 
   const { data, error } = await supabase
     .from('daily_care_items')
-    .insert({ pet_id: currentPetId, label, time: time || null, category, detail: detail || null })
+    .insert({
+      pet_id: currentPetId,
+      label,
+      time: time || null,
+      category,
+      detail: detail || null,
+      recurring,
+      date: recurring ? null : oneOffDate || todayKey(),
+    })
     .select()
     .single()
   if (error) {

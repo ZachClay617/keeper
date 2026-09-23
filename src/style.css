@@ -387,6 +387,11 @@ tr.got .shop-check::after { opacity: 1; }
 .for-multiselect-option input { margin: 0; }
 .for-multiselect-empty { font-size: 12.5px; color: var(--ink-soft); padding: 4px; }
 
+.inline-multiselect {
+  max-height: 160px; overflow-y: auto; padding: 6px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg);
+}
+
 .shop-budgets {
   display: flex; flex-wrap: wrap; gap: 10px 18px; padding-bottom: 16px; margin-bottom: 16px;
   border-bottom: 1px solid var(--line);
@@ -437,12 +442,15 @@ tr.got .shop-check::after { opacity: 1; }
 .budget-donut-wrap { display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; padding: 6px 0; }
 .budget-donut-legend { font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
 
-.report-period-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 380px) {
+.report-period-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 480px) {
+  .report-period-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 340px) {
   .report-period-grid { grid-template-columns: 1fr; }
 }
 .report-period-label { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; margin-bottom: 4px; }
-.report-period-amount { font-family: "Fraunces", Georgia, serif; font-size: 24px; font-weight: 600; }
+.report-period-amount { font-family: "Fraunces", Georgia, serif; font-size: 22px; font-weight: 600; }
 .report-period-amount.over { color: var(--clay); }
 .report-period-sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; }
 .report-period .progress-track { margin-bottom: 0; }
@@ -602,6 +610,9 @@ tr.got .shop-check::after { opacity: 1; }
   background: var(--bg); color: var(--ink); font-family: inherit; font-size: 14px;
 }
 .field textarea { min-height: 60px; resize: vertical; }
+.checkbox-field label { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.checkbox-field input[type="checkbox"] { width: auto; }
+.one-off-chip { background: color-mix(in srgb, var(--clay) 16%, transparent); color: var(--clay); }
 .btn-primary {
   padding: 11px; border-radius: 10px; border: none; background: var(--moss);
   color: #fff; font-weight: 600; font-size: 14.5px; cursor: pointer; margin-top: 4px; font-family: inherit;

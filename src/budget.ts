@@ -514,11 +514,12 @@ async function renderBudgetReport() {
   const budgetFor = (m: string) => (m === currentMonthKey() ? liveMonthTotal : snapshotByMonth.get(m) ?? 0)
   const spentFor = (m: string) => spentByMonth.get(m) || 0
 
+  const mtdBudget = budgetFor(currentMonthKey())
+  const mtdSpent = spentFor(currentMonthKey())
   const ytdBudget = ytdMonths.reduce((s, m) => s + budgetFor(m), 0)
   const ytdSpent = ytdMonths.reduce((s, m) => s + spentFor(m), 0)
   const qtdBudget = qtdMonths.reduce((s, m) => s + budgetFor(m), 0)
   const qtdSpent = qtdMonths.reduce((s, m) => s + spentFor(m), 0)
-  const monthsOverBudget = ytdMonths.filter((m) => budgetFor(m) > 0 && spentFor(m) > budgetFor(m)).length
   const avgMonthlySpend = ytdSpent / ytdMonths.length
 
   const periodBlock = (label: string, spent: number, budget: number) => {
@@ -535,7 +536,9 @@ async function renderBudgetReport() {
   }
 
   $('reportPeriodGrid').innerHTML =
-    periodBlock(`Year to date (${year})`, ytdSpent, ytdBudget) + periodBlock(`This quarter`, qtdSpent, qtdBudget)
+    periodBlock('Month to date', mtdSpent, mtdBudget) +
+    periodBlock('This quarter', qtdSpent, qtdBudget) +
+    periodBlock(`Year to date (${year})`, ytdSpent, ytdBudget)
 
   const topCategories = Array.from(categoryTotals.entries())
     .sort((a, b) => b[1] - a[1])
@@ -543,7 +546,6 @@ async function renderBudgetReport() {
 
   $('reportExtra').innerHTML = `
     <div class="report-stat-row"><span>Average monthly spend (YTD)</span><strong>${formatMoney(avgMonthlySpend)}</strong></div>
-    <div class="report-stat-row"><span>Months over budget (YTD)</span><strong>${monthsOverBudget} of ${ytdMonths.length}</strong></div>
     ${
       topCategories.length
         ? `<div class="section-label" style="margin-top:14px;">Top categories (YTD)</div>` +

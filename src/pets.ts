@@ -23,7 +23,6 @@ interface Pet {
   birthday: string | null
   weight: string | null
   enclosure_size: string | null
-  enclosure_group: string | null
   since_date: string | null
   personality: string | null
   care_notes: string | null
@@ -94,6 +93,9 @@ let currentPetId: string | null = null
 let currentModalType: 'addPet' | 'editPet' | 'confirmDelete' | 'moveMemorial' | 'restorePet' | null = null
 let actionTargetId: string | null = null
 let viewingMemorial = false
+/** petId -> set of mate petIds (built bidirectionally from the one-row-per-pair table). */
+let enclosureMates = new Map<string, Set<string>>()
+let selectedMateIds = new Set<string>()
 
 function activePets(): Pet[] {
   return pets.filter((p) => p.status === 'active')
@@ -136,6 +138,26 @@ async function loadPets() {
   if (!currentPetId && activePets().length) {
     currentPetId = activePets()[0].id
   }
+  await fetchEnclosureMates()
+}
+
+async function fetchEnclosureMates() {
+  const { data, error } = await supabase.from('enclosure_mates').select('pet_id, mate_pet_id')
+  if (error) {
+    console.error('Failed to load enclosure mates', error)
+    enclosureMates = new Map()
+    return
+  }
+  const map = new Map<string, Set<string>>()
+  const add = (a: string, b: string) => {
+    if (!map.has(a)) map.set(a, new Set())
+    map.get(a)!.add(b)
+  }
+  ;((data as { pet_id: string; mate_pet_id: string }[]) || []).forEach((row) => {
+    add(row.pet_id, row.mate_pet_id)
+    add(row.mate_pet_id, row.pet_id)
+  })
+  enclosureMates = map
 }
 
 function createAvatarButton(pet: Pet): HTMLButtonElement {
@@ -178,9 +200,12 @@ function buildStats(pet: Pet): { label: string; value: string }[] {
   else if (pet.age) stats.push({ label: 'Age', value: pet.age })
   if (pet.weight) stats.push({ label: 'Weight', value: pet.weight })
   if (pet.enclosure_size) stats.push({ label: 'Tank size', value: pet.enclosure_size })
-  if (pet.enclosure_group) {
-    const mates = activePets().filter((p) => p.id !== pet.id && p.enclosure_group === pet.enclosure_group)
-    if (mates.length) stats.push({ label: 'Enclosure mates', value: mates.map((m) => m.name).join(', ') })
+  const mateIds = enclosureMates.get(pet.id)
+  if (mateIds && mateIds.size) {
+    const names = activePets()
+      .filter((p) => mateIds.has(p.id))
+      .map((p) => p.name)
+    if (names.length) stats.push({ label: 'Enclosure mates', value: names.join(', ') })
   }
   if (pet.since_date) stats.push({ label: 'With you', value: formatDate(pet.since_date) })
   return stats
@@ -464,7 +489,10 @@ function petFormHtml(pet: Pet | null): string {
     </div>
     <div class="field"><label for="f-weight">Weight (optional)</label><input id="f-weight" type="text" placeholder="e.g. 12 lbs" value="${pet ? esc(pet.weight || '') : ''}"></div>
     <div class="field"><label for="f-tank">Enclosure / tank size (optional)</label><input id="f-tank" type="text" placeholder="e.g. 20 gal" value="${pet ? esc(pet.enclosure_size || '') : ''}"></div>
-    <div class="field"><label for="f-enclosure-group">Shares an enclosure with (optional)</label><input id="f-enclosure-group" type="text" placeholder="e.g. Tank 1 — give every roommate the same label" value="${pet ? esc(pet.enclosure_group || '') : ''}"></div>
+    <div class="field">
+      <label>Enclosure mates (optional)</label>
+      <div class="inline-multiselect" id="enclosureMatesPanel"></div>
+    </div>
     <div class="field"><label for="f-since">With you since (optional)</label><input id="f-since" type="date" value="${pet?.since_date || ''}"></div>
     <div class="field"><label for="f-personality">Personality</label><textarea id="f-personality" placeholder="A few words on their personality">${pet ? esc(pet.personality || '') : ''}</textarea></div>
     <div class="field"><label for="f-notes">Care notes</label><textarea id="f-notes" placeholder="Allergies, quirks, anything a sitter should know">${pet ? esc(pet.care_notes || '') : ''}</textarea></div>
@@ -494,6 +522,38 @@ function wireSpeciesToggle(pet: Pet | null) {
     const speciesSelect = document.getElementById(`f-${pet.type}-species`) as HTMLSelectElement | null
     if (speciesSelect) speciesSelect.value = pet.species
   }
+}
+
+function renderEnclosureMatesSelect(excludeId: string | null) {
+  const panel = document.getElementById('enclosureMatesPanel')
+  if (!panel) return
+  const options = activePets().filter((p) => p.id !== excludeId)
+  if (!options.length) {
+    panel.innerHTML = '<div class="for-multiselect-empty">No other pets yet.</div>'
+    return
+  }
+  panel.innerHTML = options
+    .map(
+      (p) => `
+      <label class="for-multiselect-option">
+        <input type="checkbox" value="${p.id}" ${selectedMateIds.has(p.id) ? 'checked' : ''}>
+        ${typeEmoji[p.type]} ${esc(p.name)}
+      </label>
+    `
+    )
+    .join('')
+}
+
+function wireEnclosureMatesSelect(pet: Pet | null) {
+  selectedMateIds = new Set(pet ? enclosureMates.get(pet.id) || [] : [])
+  renderEnclosureMatesSelect(pet?.id ?? null)
+  const panel = document.getElementById('enclosureMatesPanel')
+  if (!panel) return
+  panel.addEventListener('change', (e) => {
+    const input = e.target as HTMLInputElement
+    if (input.checked) selectedMateIds.add(input.value)
+    else selectedMateIds.delete(input.value)
+  })
 }
 
 function openModal(type: typeof currentModalType) {
@@ -551,6 +611,7 @@ function openModal(type: typeof currentModalType) {
   if (type === 'addPet' || type === 'editPet') {
     const pet = type === 'editPet' ? pets.find((p) => p.id === actionTargetId) || null : null
     wireSpeciesToggle(pet)
+    wireEnclosureMatesSelect(pet)
   }
 
   $('modalOverlay').classList.add('open')
@@ -580,7 +641,6 @@ function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 
   const birthday = (document.getElementById('f-birthday') as HTMLInputElement).value
   const weight = (document.getElementById('f-weight') as HTMLInputElement).value.trim()
   const tank = (document.getElementById('f-tank') as HTMLInputElement).value.trim()
-  const enclosureGroup = (document.getElementById('f-enclosure-group') as HTMLInputElement).value.trim()
   const since = (document.getElementById('f-since') as HTMLInputElement).value
   const personality = (document.getElementById('f-personality') as HTMLTextAreaElement).value.trim()
   const notes = (document.getElementById('f-notes') as HTMLTextAreaElement).value.trim()
@@ -593,11 +653,24 @@ function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 
     birthday: birthday || null,
     weight: weight || null,
     enclosure_size: tank || null,
-    enclosure_group: enclosureGroup || null,
     since_date: since || null,
     personality: personality || null,
     care_notes: notes || null,
   }
+}
+
+/** Resets `petId`'s enclosure-mate pairs to exactly `selectedMateIds`, leaving pairs between other pets untouched. */
+async function syncEnclosureMates(petId: string, userId: string) {
+  await supabase.from('enclosure_mates').delete().or(`pet_id.eq.${petId},mate_pet_id.eq.${petId}`)
+  const rows = Array.from(selectedMateIds).map((mateId) => {
+    const [a, b] = [petId, mateId].sort()
+    return { owner_id: userId, pet_id: a, mate_pet_id: b }
+  })
+  if (rows.length) {
+    const { error } = await supabase.from('enclosure_mates').insert(rows)
+    if (error) console.error('Failed to save enclosure mates', error)
+  }
+  await fetchEnclosureMates()
 }
 
 async function handleModalSubmit() {
@@ -620,6 +693,7 @@ async function handleModalSubmit() {
     }
     pets.push(data as Pet)
     currentPetId = (data as Pet).id
+    await syncEnclosureMates((data as Pet).id, user.id)
     closeModal()
     renderAll()
   } else if (currentModalType === 'editPet') {
@@ -633,6 +707,10 @@ async function handleModalSubmit() {
     }
     const idx = pets.findIndex((p) => p.id === actionTargetId)
     if (idx !== -1) pets[idx] = data as Pet
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) await syncEnclosureMates(actionTargetId, user.id)
     closeModal()
     renderAll()
   } else if (currentModalType === 'confirmDelete') {
@@ -642,6 +720,7 @@ async function handleModalSubmit() {
       console.error(error)
       return
     }
+    await fetchEnclosureMates()
     const wasCurrent = actionTargetId === currentPetId
     pets = pets.filter((p) => p.id !== actionTargetId)
     if (wasCurrent) currentPetId = activePets()[0]?.id || null
