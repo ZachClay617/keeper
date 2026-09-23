@@ -14,15 +14,6 @@ interface DailyCareItem {
   created_at: string
 }
 
-const categoryColor: Record<Category, string> = {
-  Feeding: 'honey',
-  Exercise: 'moss',
-  Medication: 'clay',
-  Hygiene: 'moss',
-  Environment: 'moss',
-  Health: 'clay',
-}
-
 function formatDateKey(key: string): string {
   const [y, m, d] = key.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
@@ -261,7 +252,6 @@ async function renderDaily() {
     } else {
       items.forEach((item) => {
         const done = dayCompletions.has(item.id)
-        const color = categoryColor[item.category] || 'moss'
         const row = document.createElement('div')
         row.className = 'care-row readonly' + (done ? ' done' : '')
         row.innerHTML = `
@@ -269,7 +259,7 @@ async function renderDaily() {
           <div class="care-main">
             <div class="care-label-row">
               <span class="care-label">${esc(item.label)}</span>
-              <span class="care-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${item.category}</span>
+              <span class="care-chip">${item.category}</span>
             </div>
             ${item.detail ? `<div class="care-detail">${esc(item.detail)}</div>` : ''}
           </div>
@@ -311,7 +301,6 @@ async function renderDaily() {
   } else {
     items.forEach((item) => {
       const checked = completedToday.has(item.id)
-      const color = categoryColor[item.category] || 'moss'
       const row = document.createElement('div')
       row.className = 'care-row' + (checked ? ' done' : '')
       row.dataset.id = item.id
@@ -320,7 +309,7 @@ async function renderDaily() {
         <div class="care-main">
           <div class="care-label-row">
             <span class="care-label">${esc(item.label)}</span>
-            <span class="care-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${item.category}</span>
+            <span class="care-chip">${item.category}</span>
           </div>
           ${item.detail ? `<div class="care-detail">${esc(item.detail)}</div>` : ''}
         </div>

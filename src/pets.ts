@@ -23,6 +23,7 @@ interface Pet {
   birthday: string | null
   weight: string | null
   enclosure_size: string | null
+  enclosure_group: string | null
   since_date: string | null
   personality: string | null
   care_notes: string | null
@@ -177,6 +178,10 @@ function buildStats(pet: Pet): { label: string; value: string }[] {
   else if (pet.age) stats.push({ label: 'Age', value: pet.age })
   if (pet.weight) stats.push({ label: 'Weight', value: pet.weight })
   if (pet.enclosure_size) stats.push({ label: 'Tank size', value: pet.enclosure_size })
+  if (pet.enclosure_group) {
+    const mates = activePets().filter((p) => p.id !== pet.id && p.enclosure_group === pet.enclosure_group)
+    if (mates.length) stats.push({ label: 'Enclosure mates', value: mates.map((m) => m.name).join(', ') })
+  }
   if (pet.since_date) stats.push({ label: 'With you', value: formatDate(pet.since_date) })
   return stats
 }
@@ -459,6 +464,7 @@ function petFormHtml(pet: Pet | null): string {
     </div>
     <div class="field"><label for="f-weight">Weight (optional)</label><input id="f-weight" type="text" placeholder="e.g. 12 lbs" value="${pet ? esc(pet.weight || '') : ''}"></div>
     <div class="field"><label for="f-tank">Enclosure / tank size (optional)</label><input id="f-tank" type="text" placeholder="e.g. 20 gal" value="${pet ? esc(pet.enclosure_size || '') : ''}"></div>
+    <div class="field"><label for="f-enclosure-group">Shares an enclosure with (optional)</label><input id="f-enclosure-group" type="text" placeholder="e.g. Tank 1 — give every roommate the same label" value="${pet ? esc(pet.enclosure_group || '') : ''}"></div>
     <div class="field"><label for="f-since">With you since (optional)</label><input id="f-since" type="date" value="${pet?.since_date || ''}"></div>
     <div class="field"><label for="f-personality">Personality</label><textarea id="f-personality" placeholder="A few words on their personality">${pet ? esc(pet.personality || '') : ''}</textarea></div>
     <div class="field"><label for="f-notes">Care notes</label><textarea id="f-notes" placeholder="Allergies, quirks, anything a sitter should know">${pet ? esc(pet.care_notes || '') : ''}</textarea></div>
@@ -574,6 +580,7 @@ function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 
   const birthday = (document.getElementById('f-birthday') as HTMLInputElement).value
   const weight = (document.getElementById('f-weight') as HTMLInputElement).value.trim()
   const tank = (document.getElementById('f-tank') as HTMLInputElement).value.trim()
+  const enclosureGroup = (document.getElementById('f-enclosure-group') as HTMLInputElement).value.trim()
   const since = (document.getElementById('f-since') as HTMLInputElement).value
   const personality = (document.getElementById('f-personality') as HTMLTextAreaElement).value.trim()
   const notes = (document.getElementById('f-notes') as HTMLTextAreaElement).value.trim()
@@ -586,6 +593,7 @@ function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 
     birthday: birthday || null,
     weight: weight || null,
     enclosure_size: tank || null,
+    enclosure_group: enclosureGroup || null,
     since_date: since || null,
     personality: personality || null,
     care_notes: notes || null,

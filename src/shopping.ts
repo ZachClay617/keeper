@@ -30,16 +30,6 @@ interface PetOption {
   name: string
 }
 
-const categoryColor: Record<ShopCategory, string> = {
-  Food: 'honey',
-  'Litter & Bedding': 'moss',
-  Medical: 'clay',
-  Toys: 'honey',
-  Grooming: 'moss',
-  'Tank/Enclosure': 'moss',
-  Other: 'moss',
-}
-
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
   const dt = new Date(iso + 'T00:00:00')
@@ -153,13 +143,12 @@ function renderShopping() {
   } else {
     body.innerHTML = items
       .map((item) => {
-        const color = categoryColor[item.category] || 'moss'
         return `
           <tr class="${item.got ? 'got' : ''}" data-id="${item.id}">
             <td><button class="shop-check" aria-label="Mark as bought"></button></td>
             <td class="shop-item-cell">${esc(item.item)}</td>
             <td>${item.qty ? esc(item.qty) : ''}</td>
-            <td><span class="care-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${item.category}</span></td>
+            <td><span class="care-chip">${item.category}</span></td>
             <td>${esc(formatDate(item.due_date))}</td>
             <td>${item.est_price != null ? formatMoney(Number(item.est_price)) : '—'}</td>
             <td><button class="delete-btn" aria-label="Remove item">×</button></td>

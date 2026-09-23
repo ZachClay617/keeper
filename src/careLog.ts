@@ -24,15 +24,6 @@ interface WeightEntry {
   created_at: string
 }
 
-const categoryColor: Record<LogCategory, string> = {
-  Vet: 'clay',
-  Vaccine: 'honey',
-  Grooming: 'moss',
-  Maintenance: 'moss',
-  Checkup: 'clay',
-  Other: 'moss',
-}
-
 function formatDate(iso: string): string {
   const dt = new Date(iso + 'T00:00:00')
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -218,16 +209,15 @@ function renderUpcoming() {
     card.style.display = 'none'
     return
   }
+  card.style.display = ''
   const today = todayKey()
   const upcoming = entries.filter((e) => e.date >= today).sort((a, b) => (a.date === b.date ? (a.time || '').localeCompare(b.time || '') : a.date < b.date ? -1 : 1))
   if (!upcoming.length) {
-    card.style.display = 'none'
+    wrap.innerHTML = '<div class="empty-state" style="padding:6px 0;">Nothing coming up.</div>'
     return
   }
-  card.style.display = ''
   wrap.innerHTML = upcoming
     .map((entry) => {
-      const color = categoryColor[entry.category] || 'moss'
       const dayLabel = relativeDayLabel(entry.date)
       const timeLabel = entry.time ? ` at ${formatTime(entry.time)}` : ''
       return `
@@ -235,7 +225,7 @@ function renderUpcoming() {
           <div class="upcoming-day-badge">${esc(dayLabel)}${esc(timeLabel)}</div>
           <div class="upcoming-main">
             <div class="log-title">${esc(entry.title)}</div>
-            <span class="log-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${entry.category}</span>
+            <span class="log-chip">${entry.category}</span>
           </div>
           <button class="delete-btn" aria-label="Delete entry" data-id="${entry.id}">×</button>
         </div>
@@ -271,13 +261,12 @@ function renderLog() {
   wrap.innerHTML = '<div class="timeline" id="logList"></div>'
   const logList = $('logList')
   past.forEach((entry) => {
-    const color = categoryColor[entry.category] || 'moss'
     const div = document.createElement('div')
     div.className = 'log-entry'
     div.innerHTML = `
       <div class="log-date">${esc(formatDate(entry.date))}</div>
       <div class="log-title">${esc(entry.title)}</div>
-      <span class="log-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${entry.category}</span>
+      <span class="log-chip">${entry.category}</span>
       <button class="delete-btn" aria-label="Delete entry" data-id="${entry.id}" style="float:right; margin-top:-28px;">×</button>
     `
     logList.appendChild(div)

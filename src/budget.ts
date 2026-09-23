@@ -45,16 +45,6 @@ const typeEmoji: Record<PetType, string> = {
   other: '🐾',
 }
 
-const categoryColor: Record<ShopCategory, string> = {
-  Food: 'honey',
-  'Litter & Bedding': 'moss',
-  Medical: 'clay',
-  Toys: 'honey',
-  Grooming: 'moss',
-  'Tank/Enclosure': 'moss',
-  Other: 'moss',
-}
-
 const trendPalette = [
   'var(--moss)',
   'var(--honey)',
@@ -149,6 +139,12 @@ async function fetchAll() {
   items = (itemsRes.data as unknown as ShoppingRow[]) || []
 }
 
+/** An item shared across N pets splits its cost evenly N ways, rather than charging the full price to each. */
+function itemShareFor(item: ShoppingRow): number {
+  const n = item.shopping_item_pets.length
+  return (Number(item.est_price) || 0) / (n || 1)
+}
+
 function computeRows(): RowData[] {
   const month = viewingMonth || currentMonthKey()
   const rows: RowData[] = pets.map((p) => ({
@@ -158,7 +154,7 @@ function computeRows(): RowData[] {
     budget: p.monthly_budget,
     spent: items
       .filter((i) => i.shopping_item_pets.some((a) => a.pet_id === p.id) && i.got && i.got_month === month)
-      .reduce((s, i) => s + (Number(i.est_price) || 0), 0),
+      .reduce((s, i) => s + itemShareFor(i), 0),
   }))
   const miscSpent = items
     .filter((i) => !i.shopping_item_pets.length && i.got && i.got_month === month)
@@ -424,10 +420,11 @@ async function renderTrendChart() {
     const mi = monthKeys.indexOf(r.got_month)
     if (mi === -1) return
     const assignedIds = r.shopping_item_pets.length ? r.shopping_item_pets.map((a) => a.pet_id) : [null]
+    const share = (Number(r.est_price) || 0) / assignedIds.length
     assignedIds.forEach((petId) => {
       const si = series.findIndex((s) => s.id === petId)
       if (si === -1) return
-      totals[mi][si] += Number(r.est_price) || 0
+      totals[mi][si] += share
     })
   })
   const monthTotals = totals.map((seriesAmounts) => seriesAmounts.reduce((s, v) => s + v, 0))
@@ -466,6 +463,96 @@ async function renderTrendChart() {
     .join('')
 }
 
+// ── Budget report (year-to-date / quarter-to-date) ──────────────────────
+
+function monthsFrom(startMonth: number, endMonth: number, year: string): string[] {
+  const months: string[] = []
+  for (let m = startMonth; m <= endMonth; m++) months.push(`${year}-${String(m).padStart(2, '0')}`)
+  return months
+}
+
+async function renderBudgetReport() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  const year = currentMonthKey().slice(0, 4)
+  const curMonthNum = Number(currentMonthKey().slice(5, 7))
+  const quarterStartMonth = Math.floor((curMonthNum - 1) / 3) * 3 + 1
+  const ytdMonths = monthsFrom(1, curMonthNum, year)
+  const qtdMonths = monthsFrom(quarterStartMonth, curMonthNum, year)
+
+  const [snapshotsRes, livePetsRes, profileRes, itemsRes] = await Promise.all([
+    supabase.from('budget_snapshots').select('month, budget').eq('owner_id', user.id).in('month', ytdMonths),
+    supabase.from('pets').select('monthly_budget').eq('owner_id', user.id).eq('status', 'active'),
+    supabase.from('profiles').select('misc_monthly_budget').eq('id', user.id).single(),
+    supabase
+      .from('shopping_items')
+      .select('got_month, est_price, category')
+      .eq('owner_id', user.id)
+      .eq('got', true)
+      .in('got_month', ytdMonths),
+  ])
+
+  const snapshotByMonth = new Map<string, number>()
+  ;((snapshotsRes.data as { month: string; budget: number | null }[]) || []).forEach((s) => {
+    snapshotByMonth.set(s.month, (snapshotByMonth.get(s.month) || 0) + (Number(s.budget) || 0))
+  })
+  const liveMonthTotal =
+    ((livePetsRes.data as { monthly_budget: number | null }[]) || []).reduce((sum, p) => sum + (Number(p.monthly_budget) || 0), 0) +
+    (Number(profileRes.data?.misc_monthly_budget) || 0)
+
+  const spentByMonth = new Map<string, number>()
+  const categoryTotals = new Map<string, number>()
+  ;((itemsRes.data as { got_month: string; est_price: number | null; category: string }[]) || []).forEach((r) => {
+    const price = Number(r.est_price) || 0
+    spentByMonth.set(r.got_month, (spentByMonth.get(r.got_month) || 0) + price)
+    categoryTotals.set(r.category, (categoryTotals.get(r.category) || 0) + price)
+  })
+
+  const budgetFor = (m: string) => (m === currentMonthKey() ? liveMonthTotal : snapshotByMonth.get(m) ?? 0)
+  const spentFor = (m: string) => spentByMonth.get(m) || 0
+
+  const ytdBudget = ytdMonths.reduce((s, m) => s + budgetFor(m), 0)
+  const ytdSpent = ytdMonths.reduce((s, m) => s + spentFor(m), 0)
+  const qtdBudget = qtdMonths.reduce((s, m) => s + budgetFor(m), 0)
+  const qtdSpent = qtdMonths.reduce((s, m) => s + spentFor(m), 0)
+  const monthsOverBudget = ytdMonths.filter((m) => budgetFor(m) > 0 && spentFor(m) > budgetFor(m)).length
+  const avgMonthlySpend = ytdSpent / ytdMonths.length
+
+  const periodBlock = (label: string, spent: number, budget: number) => {
+    const pct = budget > 0 ? Math.min(100, (spent / budget) * 100) : spent > 0 ? 100 : 0
+    const over = budget > 0 && spent > budget
+    return `
+      <div class="report-period">
+        <div class="report-period-label">${esc(label)}</div>
+        <div class="report-period-amount ${over ? 'over' : ''}">${formatMoney(spent)}</div>
+        <div class="report-period-sub">of ${budget > 0 ? formatMoney(budget) : 'no budget set'}</div>
+        <div class="progress-track"><div class="progress-fill ${over ? 'over' : ''}" style="width:${pct}%;"></div></div>
+      </div>
+    `
+  }
+
+  $('reportPeriodGrid').innerHTML =
+    periodBlock(`Year to date (${year})`, ytdSpent, ytdBudget) + periodBlock(`This quarter`, qtdSpent, qtdBudget)
+
+  const topCategories = Array.from(categoryTotals.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+
+  $('reportExtra').innerHTML = `
+    <div class="report-stat-row"><span>Average monthly spend (YTD)</span><strong>${formatMoney(avgMonthlySpend)}</strong></div>
+    <div class="report-stat-row"><span>Months over budget (YTD)</span><strong>${monthsOverBudget} of ${ytdMonths.length}</strong></div>
+    ${
+      topCategories.length
+        ? `<div class="section-label" style="margin-top:14px;">Top categories (YTD)</div>` +
+          topCategories.map(([cat, amt]) => `<div class="report-stat-row"><span>${esc(cat)}</span><strong>${formatMoney(amt)}</strong></div>`).join('')
+        : ''
+    }
+  `
+}
+
 function renderForOptions() {
   const btn = $('fullShopForBtn')
   const panel = $('fullShopForPanel')
@@ -495,18 +582,17 @@ function renderFullShoppingTable() {
   }
   body.innerHTML = items
     .map((item) => {
-      const color = categoryColor[item.category] || 'moss'
-      const forLabel = item.shopping_item_pets.length
-        ? item.shopping_item_pets.map((a) => esc(a.pets?.name || 'Unknown pet')).join(', ')
-        : 'General'
+      const n = item.shopping_item_pets.length
+      const forLabel = n ? item.shopping_item_pets.map((a) => esc(a.pets?.name || 'Unknown pet')).join(', ') : 'General'
+      const splitHint = n > 1 && item.est_price != null ? `<div class="split-hint">${formatMoney(itemShareFor(item))} each</div>` : ''
       return `
         <tr class="${item.got ? 'got' : ''}" data-id="${item.id}">
           <td><button class="shop-check" aria-label="Mark as bought"></button></td>
           <td class="shop-item-cell">${esc(item.item)}</td>
           <td>${item.qty ? esc(item.qty) : ''}</td>
-          <td><span class="care-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${item.category}</span></td>
+          <td><span class="care-chip">${item.category}</span></td>
           <td>${esc(formatDate(item.due_date))}</td>
-          <td>${item.est_price != null ? formatMoney(Number(item.est_price)) : '—'}</td>
+          <td>${item.est_price != null ? formatMoney(Number(item.est_price)) : '—'}${splitHint}</td>
           <td>${forLabel}</td>
           <td><button class="delete-btn" aria-label="Remove item">×</button></td>
         </tr>
@@ -670,6 +756,7 @@ async function renderBudget() {
   renderFullShoppingTable()
   renderHeroAndRows()
   await renderTrendChart()
+  await renderBudgetReport()
 }
 
 export async function showBudget() {

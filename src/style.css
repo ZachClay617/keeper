@@ -33,10 +33,30 @@
   --moss: #3D6EA6; --moss-deep: #274A73; --honey: #C9974A; --clay: #B15D6C;
   --mist: #DCE3EA; --line: rgba(22,32,43,0.12);
 }
-:root[data-palette="amber"] {
-  --bg: #F5EFE4; --surface: #FFFFFF; --ink: #2B2015; --ink-soft: #6B5A45;
-  --moss: #C1832E; --moss-deep: #8F5F1E; --honey: #D9A66B; --clay: #A6472E;
-  --mist: #EDE1CC; --line: rgba(43,32,21,0.12);
+:root[data-palette="terracotta"] {
+  --bg: #F6EDE6; --surface: #FFFFFF; --ink: #2B1B12; --ink-soft: #6E5445;
+  --moss: #C1613A; --moss-deep: #8F4325; --honey: #D9A66B; --clay: #A6472E;
+  --mist: #EFE0D3; --line: rgba(43,27,18,0.12);
+}
+:root[data-palette="lavender"] {
+  --bg: #F1EEF6; --surface: #FFFFFF; --ink: #201C2B; --ink-soft: #5C5570;
+  --moss: #7A5FA6; --moss-deep: #573F7D; --honey: #C9974A; --clay: #B15D6C;
+  --mist: #E5E1EF; --line: rgba(32,28,43,0.12);
+}
+:root[data-palette="teal"] {
+  --bg: #EAF2F1; --surface: #FFFFFF; --ink: #14262A; --ink-soft: #4B6E72;
+  --moss: #2E8C86; --moss-deep: #1F625E; --honey: #D9A66B; --clay: #B15D4E;
+  --mist: #DCEAE8; --line: rgba(20,38,42,0.12);
+}
+:root[data-palette="rose"] {
+  --bg: #F7EEF0; --surface: #FFFFFF; --ink: #2B1820; --ink-soft: #6E4B54;
+  --moss: #B15D74; --moss-deep: #833F52; --honey: #D9A66B; --clay: #A6472E;
+  --mist: #EFE1E4; --line: rgba(43,24,32,0.12);
+}
+:root[data-palette="slate"] {
+  --bg: #EEF0F1; --surface: #FFFFFF; --ink: #191F22; --ink-soft: #566067;
+  --moss: #51707D; --moss-deep: #37505B; --honey: #C9974A; --clay: #B15D5D;
+  --mist: #E1E5E7; --line: rgba(25,31,34,0.12);
 }
 @media (prefers-color-scheme: dark) {
   :root[data-palette="blue"]:not([data-theme="light"]) {
@@ -44,10 +64,30 @@
     --moss: #6FA0D1; --moss-deep: #4A7AAE; --honey: #E0B368; --clay: #E08B95;
     --mist: #1C2732; --line: rgba(232,237,242,0.14);
   }
-  :root[data-palette="amber"]:not([data-theme="light"]) {
-    --bg: #1A140D; --surface: #241C12; --ink: #F2E9DD; --ink-soft: #BBA88F;
-    --moss: #D9A354; --moss-deep: #B37E36; --honey: #E8C48A; --clay: #D97E62;
-    --mist: #2A2116; --line: rgba(242,233,221,0.14);
+  :root[data-palette="terracotta"]:not([data-theme="light"]) {
+    --bg: #1C130D; --surface: #261A12; --ink: #F2E4D8; --ink-soft: #C2A793;
+    --moss: #E0824F; --moss-deep: #B45F32; --honey: #E8C48A; --clay: #D97E62;
+    --mist: #2C1E14; --line: rgba(242,228,216,0.14);
+  }
+  :root[data-palette="lavender"]:not([data-theme="light"]) {
+    --bg: #16121E; --surface: #201A2C; --ink: #EAE6F2; --ink-soft: #AFA6C2;
+    --moss: #A78BD1; --moss-deep: #7E5FAE; --honey: #E0B368; --clay: #E08B95;
+    --mist: #241D30; --line: rgba(234,230,242,0.14);
+  }
+  :root[data-palette="teal"]:not([data-theme="light"]) {
+    --bg: #0D1817; --surface: #142221; --ink: #E4F1EF; --ink-soft: #9DBDB9;
+    --moss: #4FB3AB; --moss-deep: #35857E; --honey: #E0B368; --clay: #E08268;
+    --mist: #1A2827; --line: rgba(228,241,239,0.14);
+  }
+  :root[data-palette="rose"]:not([data-theme="light"]) {
+    --bg: #1E1216; --surface: #281A1F; --ink: #F2E4E8; --ink-soft: #C2A2AB;
+    --moss: #D98BA0; --moss-deep: #B4637A; --honey: #E8C48A; --clay: #D97E62;
+    --mist: #2C1E22; --line: rgba(242,228,232,0.14);
+  }
+  :root[data-palette="slate"]:not([data-theme="light"]) {
+    --bg: #12171A; --surface: #1A2226; --ink: #E7ECEE; --ink-soft: #A3B0B6;
+    --moss: #7FA5B3; --moss-deep: #587D8C; --honey: #E0B368; --clay: #E08585;
+    --mist: #202A2E; --line: rgba(231,236,238,0.14);
   }
 }
 :root[data-palette="blue"][data-theme="dark"] {
@@ -56,11 +96,35 @@
   --moss: #6FA0D1; --moss-deep: #4A7AAE; --honey: #E0B368; --clay: #E08B95;
   --mist: #1C2732; --line: rgba(232,237,242,0.14);
 }
-:root[data-palette="amber"][data-theme="dark"] {
+:root[data-palette="terracotta"][data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1A140D; --surface: #241C12; --ink: #F2E9DD; --ink-soft: #BBA88F;
-  --moss: #D9A354; --moss-deep: #B37E36; --honey: #E8C48A; --clay: #D97E62;
-  --mist: #2A2116; --line: rgba(242,233,221,0.14);
+  --bg: #1C130D; --surface: #261A12; --ink: #F2E4D8; --ink-soft: #C2A793;
+  --moss: #E0824F; --moss-deep: #B45F32; --honey: #E8C48A; --clay: #D97E62;
+  --mist: #2C1E14; --line: rgba(242,228,216,0.14);
+}
+:root[data-palette="lavender"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #16121E; --surface: #201A2C; --ink: #EAE6F2; --ink-soft: #AFA6C2;
+  --moss: #A78BD1; --moss-deep: #7E5FAE; --honey: #E0B368; --clay: #E08B95;
+  --mist: #241D30; --line: rgba(234,230,242,0.14);
+}
+:root[data-palette="teal"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0D1817; --surface: #142221; --ink: #E4F1EF; --ink-soft: #9DBDB9;
+  --moss: #4FB3AB; --moss-deep: #35857E; --honey: #E0B368; --clay: #E08268;
+  --mist: #1A2827; --line: rgba(228,241,239,0.14);
+}
+:root[data-palette="rose"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1E1216; --surface: #281A1F; --ink: #F2E4E8; --ink-soft: #C2A2AB;
+  --moss: #D98BA0; --moss-deep: #B4637A; --honey: #E8C48A; --clay: #D97E62;
+  --mist: #2C1E22; --line: rgba(242,228,232,0.14);
+}
+:root[data-palette="slate"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12171A; --surface: #1A2226; --ink: #E7ECEE; --ink-soft: #A3B0B6;
+  --moss: #7FA5B3; --moss-deep: #587D8C; --honey: #E0B368; --clay: #E08585;
+  --mist: #202A2E; --line: rgba(231,236,238,0.14);
 }
 
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
@@ -171,7 +235,10 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
 .care-label { font-size: 15px; }
 .care-row.done .care-label { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--line); }
 .care-detail { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
-.care-chip { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.care-chip {
+  display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  background: color-mix(in srgb, var(--ink-soft) 16%, transparent); color: var(--ink-soft);
+}
 .care-time { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; padding-top: 2px; }
 .delete-btn {
   background: none; border: none; color: var(--ink-soft); opacity: 0.5; font-size: 17px; line-height: 1;
@@ -235,7 +302,10 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
 }
 .log-date { font-size: 12px; color: var(--ink-soft); margin-bottom: 3px; }
 .log-title { font-size: 15px; margin-bottom: 6px; }
-.log-chip { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.log-chip {
+  display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  background: color-mix(in srgb, var(--ink-soft) 16%, transparent); color: var(--ink-soft);
+}
 
 .upcoming-card { border: 1.5px dashed var(--clay); background: color-mix(in srgb, var(--clay) 7%, var(--surface)); }
 .upcoming-card .progress-row h2 { color: var(--clay); }
@@ -271,6 +341,7 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
   padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap;
 }
 .shopping-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.split-hint { font-size: 10.5px; color: var(--ink-soft); white-space: nowrap; }
 .shopping-table tr:last-child td { border-bottom: none; }
 .shopping-table tr.got .shop-item-cell { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--line); }
 .shop-check {
@@ -365,6 +436,20 @@ tr.got .shop-check::after { opacity: 1; }
 
 .budget-donut-wrap { display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; padding: 6px 0; }
 .budget-donut-legend { font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
+
+.report-period-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 380px) {
+  .report-period-grid { grid-template-columns: 1fr; }
+}
+.report-period-label { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; margin-bottom: 4px; }
+.report-period-amount { font-family: "Fraunces", Georgia, serif; font-size: 24px; font-weight: 600; }
+.report-period-amount.over { color: var(--clay); }
+.report-period-sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; }
+.report-period .progress-track { margin-bottom: 0; }
+.report-period .progress-fill.over { background: var(--clay); }
+.report-extra { margin-top: 18px; }
+.report-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13.5px; border-top: 1px solid var(--line); }
+.report-stat-row:first-child { border-top: none; }
 .budget-donut-legend .legend-row { display: flex; align-items: center; gap: 8px; }
 .budget-donut-legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
