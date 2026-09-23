@@ -6,6 +6,8 @@ import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } fr
 import { showOnly } from './views'
 import { $, esc } from './dom'
 import { uploadPhoto, deletePhoto } from './imageUpload'
+import { formatAge } from './petAge'
+import { todayKey } from './timezone'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
 type PetStatus = 'active' | 'memorial'
@@ -18,6 +20,7 @@ interface Pet {
   species: string | null
   breed_or_morph: string | null
   age: string | null
+  birthday: string | null
   weight: string | null
   enclosure_size: string | null
   since_date: string | null
@@ -170,7 +173,8 @@ export function setActiveTab(tab: string) {
 
 function buildStats(pet: Pet): { label: string; value: string }[] {
   const stats: { label: string; value: string }[] = []
-  if (pet.age) stats.push({ label: 'Age', value: pet.age })
+  if (pet.birthday) stats.push({ label: 'Age', value: formatAge(pet.birthday) })
+  else if (pet.age) stats.push({ label: 'Age', value: pet.age })
   if (pet.weight) stats.push({ label: 'Weight', value: pet.weight })
   if (pet.enclosure_size) stats.push({ label: 'Tank size', value: pet.enclosure_size })
   if (pet.since_date) stats.push({ label: 'With you', value: formatDate(pet.since_date) })
@@ -450,7 +454,9 @@ function petFormHtml(pet: Pet | null): string {
     <div class="field" id="f-reptile-wrap" style="display:none;"><label for="f-reptile-species">Species</label><select id="f-reptile-species">${speciesSelectHtml('reptile')}</select></div>
     <div class="field" id="f-fish-wrap" style="display:none;"><label for="f-fish-species">Species</label><select id="f-fish-species">${speciesSelectHtml('fish')}</select></div>
     <div class="field"><label for="f-breed">Breed / morph (optional)</label><input id="f-breed" type="text" placeholder="e.g. Golden Retriever, Mack Snow, Netherland Dwarf" value="${pet ? esc(pet.breed_or_morph || '') : ''}"></div>
-    <div class="field"><label for="f-age">Age</label><input id="f-age" type="text" placeholder="e.g. 2 years" value="${pet ? esc(pet.age || '') : ''}"></div>
+    <div class="field"><label for="f-birthday">Estimated birthday</label><input id="f-birthday" type="date" max="${todayKey()}" value="${pet?.birthday || ''}">
+      ${pet && !pet.birthday && pet.age ? `<div class="field-hint">Previously recorded age: ${esc(pet.age)}. Set a birthday to switch to an auto-updating age.</div>` : ''}
+    </div>
     <div class="field"><label for="f-weight">Weight (optional)</label><input id="f-weight" type="text" placeholder="e.g. 12 lbs" value="${pet ? esc(pet.weight || '') : ''}"></div>
     <div class="field"><label for="f-tank">Enclosure / tank size (optional)</label><input id="f-tank" type="text" placeholder="e.g. 20 gal" value="${pet ? esc(pet.enclosure_size || '') : ''}"></div>
     <div class="field"><label for="f-since">With you since (optional)</label><input id="f-since" type="date" value="${pet?.since_date || ''}"></div>
@@ -553,7 +559,7 @@ function closeModal() {
   actionTargetId = null
 }
 
-function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 'passed_date' | 'memory_note' | 'monthly_budget' | 'avatar_url'> | null {
+function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 'passed_date' | 'memory_note' | 'monthly_budget' | 'avatar_url' | 'age'> | null {
   const nameInput = document.getElementById('f-name') as HTMLInputElement
   const name = nameInput.value.trim()
   if (!name) {
@@ -565,7 +571,7 @@ function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 
   const speciesField = document.getElementById(speciesFieldId) as HTMLSelectElement | null
   const species = speciesField ? speciesField.value : ''
   const breed = (document.getElementById('f-breed') as HTMLInputElement).value.trim()
-  const age = (document.getElementById('f-age') as HTMLInputElement).value.trim()
+  const birthday = (document.getElementById('f-birthday') as HTMLInputElement).value
   const weight = (document.getElementById('f-weight') as HTMLInputElement).value.trim()
   const tank = (document.getElementById('f-tank') as HTMLInputElement).value.trim()
   const since = (document.getElementById('f-since') as HTMLInputElement).value
@@ -577,7 +583,7 @@ function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 
     type,
     species: species || null,
     breed_or_morph: breed || null,
-    age: age || null,
+    birthday: birthday || null,
     weight: weight || null,
     enclosure_size: tank || null,
     since_date: since || null,
