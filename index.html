@@ -188,6 +188,24 @@
       <div id="dailyList"></div>
       <button class="add-row-btn" id="addItemBtn">+ Add care item</button>
     </div>
+
+    <div class="card plan-tomorrow-card" id="planTomorrowCard">
+      <button class="plan-tomorrow-toggle" id="planTomorrowToggle">
+        <span class="plan-tomorrow-icon">🗓️</span>
+        <span class="plan-tomorrow-toggle-text">
+          <strong>Plan tomorrow</strong>
+          <span id="planTomorrowSubtitle">Jot down anything special for tomorrow</span>
+        </span>
+        <span class="plan-tomorrow-chevron" id="planTomorrowChevron">›</span>
+      </button>
+      <div class="plan-tomorrow-body" id="planTomorrowBody" style="display:none;">
+        <div id="planTomorrowList"></div>
+        <div class="plan-tomorrow-add">
+          <input type="text" id="planTomorrowInput" placeholder="e.g. Vet appointment at 3pm" maxlength="200">
+          <button class="btn-primary" id="planTomorrowAddBtn">Add</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="panel" id="panel-log">

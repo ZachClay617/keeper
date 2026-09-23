@@ -39,12 +39,29 @@ function shiftDateKey(key: string, delta: number): string {
   return `${yy}-${mm}-${dd}`
 }
 
+function tomorrowKey(): string {
+  return shiftDateKey(todayKey(), 1)
+}
+
+interface PlannedTask {
+  id: string
+  pet_id: string
+  date: string
+  label: string
+  done: boolean
+  created_at: string
+}
+
 let currentPetId: string | null = null
 let items: DailyCareItem[] = []
 let completedToday = new Set<string>()
 let historyDates: string[] = []
 let viewingDate: string | null = null
 let wired = false
+let plannedForTomorrow: PlannedTask[] = []
+let plannedForToday: PlannedTask[] = []
+let plannedForViewingDate: PlannedTask[] = []
+let planTomorrowOpen = false
 
 async function fetchItems(petId: string) {
   const { data, error } = await supabase
@@ -88,6 +105,100 @@ async function fetchHistoryDates(petId: string): Promise<string[]> {
   return dates.sort().reverse()
 }
 
+async function fetchPlannedTasks(petId: string, date: string): Promise<PlannedTask[]> {
+  const { data, error } = await supabase
+    .from('planned_tasks')
+    .select('*')
+    .eq('pet_id', petId)
+    .eq('date', date)
+    .order('created_at', { ascending: true })
+  if (error) {
+    console.error('Failed to load planned tasks', error)
+    return []
+  }
+  return (data as PlannedTask[]) || []
+}
+
+function renderPlanTomorrow() {
+  const card = $('planTomorrowCard')
+  const body = $('planTomorrowBody')
+  const subtitle = $('planTomorrowSubtitle')
+  const list = $('planTomorrowList')
+
+  if (!currentPetId) {
+    card.style.display = 'none'
+    return
+  }
+  card.style.display = ''
+  card.classList.toggle('open', planTomorrowOpen)
+  body.style.display = planTomorrowOpen ? '' : 'none'
+  subtitle.textContent = plannedForTomorrow.length
+    ? `${plannedForTomorrow.length} planned for ${formatDateKey(tomorrowKey())}`
+    : `Jot down anything special for ${formatDateKey(tomorrowKey())}`
+
+  if (!plannedForTomorrow.length) {
+    list.innerHTML = '<div class="plan-tomorrow-empty">Nothing planned yet.</div>'
+  } else {
+    list.innerHTML = ''
+    plannedForTomorrow.forEach((task) => {
+      const row = document.createElement('div')
+      row.className = 'plan-tomorrow-item'
+      row.dataset.id = task.id
+      row.innerHTML = `
+        <span class="plan-tomorrow-label">${esc(task.label)}</span>
+        <button class="plan-tomorrow-delete" aria-label="Remove">×</button>
+      `
+      list.appendChild(row)
+    })
+  }
+}
+
+async function addPlannedTask() {
+  if (!currentPetId) return
+  const input = $('planTomorrowInput') as HTMLInputElement
+  const label = input.value.trim()
+  if (!label) return
+  const { data, error } = await supabase
+    .from('planned_tasks')
+    .insert({ pet_id: currentPetId, date: tomorrowKey(), label })
+    .select()
+    .single()
+  if (error) {
+    console.error(error)
+    return
+  }
+  plannedForTomorrow.push(data as PlannedTask)
+  input.value = ''
+  renderPlanTomorrow()
+}
+
+async function deletePlannedTask(taskId: string): Promise<boolean> {
+  const { error } = await supabase.from('planned_tasks').delete().eq('id', taskId)
+  if (error) {
+    console.error(error)
+    return false
+  }
+  return true
+}
+
+async function removeTomorrowTask(taskId: string) {
+  if (!(await deletePlannedTask(taskId))) return
+  plannedForTomorrow = plannedForTomorrow.filter((t) => t.id !== taskId)
+  renderPlanTomorrow()
+}
+
+async function togglePlannedToday(taskId: string) {
+  const task = plannedForToday.find((t) => t.id === taskId)
+  if (!task) return
+  const { error } = await supabase.from('planned_tasks').update({ done: !task.done }).eq('id', taskId)
+  if (error) {
+    console.error(error)
+    return
+  }
+  task.done = !task.done
+  await renderDaily()
+}
+
 function renderDayPicker() {
   const picker = $('dayPicker') as HTMLSelectElement
   const dates = viewingDate && !historyDates.includes(viewingDate) ? [viewingDate, ...historyDates].sort().reverse() : historyDates
@@ -114,10 +225,12 @@ async function renderDaily() {
     $('dayPicker').innerHTML = ''
     $('progressText').textContent = ''
     ;($('progressBar') as HTMLElement).style.width = '0%'
+    renderPlanTomorrow()
     return
   }
 
   renderDayPicker()
+  renderPlanTomorrow()
 
   if (viewingDate) {
     heading.textContent = formatDateKey(viewingDate)
@@ -126,8 +239,24 @@ async function renderDaily() {
     addBtn.style.display = 'none'
 
     const dayCompletions = await fetchCompletionsForDate(currentPetId, viewingDate)
+    plannedForViewingDate = await fetchPlannedTasks(currentPetId, viewingDate)
     list.innerHTML = ''
-    if (!items.length) {
+    plannedForViewingDate.forEach((task) => {
+      const row = document.createElement('div')
+      row.className = 'care-row readonly today-plan-row' + (task.done ? ' done' : '')
+      row.innerHTML = `
+        <span class="check-box"></span>
+        <div class="care-main">
+          <div class="care-label-row">
+            <span class="care-label">${esc(task.label)}</span>
+            <span class="care-chip plan-chip">Planned</span>
+          </div>
+        </div>
+        <span class="care-time"></span>
+      `
+      list.appendChild(row)
+    })
+    if (!items.length && !plannedForViewingDate.length) {
       list.innerHTML = '<div class="empty-state">No record for this day.</div>'
     } else {
       items.forEach((item) => {
@@ -149,8 +278,8 @@ async function renderDaily() {
         list.appendChild(row)
       })
     }
-    const total = items.length
-    const done = items.filter((i) => dayCompletions.has(i.id)).length
+    const total = items.length + plannedForViewingDate.length
+    const done = items.filter((i) => dayCompletions.has(i.id)).length + plannedForViewingDate.filter((t) => t.done).length
     $('progressText').textContent = `${done} of ${total} done`
     ;($('progressBar') as HTMLElement).style.width = (total ? (done / total) * 100 : 0) + '%'
     return
@@ -160,7 +289,24 @@ async function renderDaily() {
   banner.style.display = 'none'
   addBtn.style.display = ''
   list.innerHTML = ''
-  if (!items.length) {
+  plannedForToday.forEach((task) => {
+    const row = document.createElement('div')
+    row.className = 'care-row today-plan-row' + (task.done ? ' done' : '')
+    row.dataset.planId = task.id
+    row.innerHTML = `
+      <button class="check-box" aria-label="Toggle done"></button>
+      <div class="care-main">
+        <div class="care-label-row">
+          <span class="care-label">${esc(task.label)}</span>
+          <span class="care-chip plan-chip">Planned</span>
+        </div>
+      </div>
+      <span class="care-time"></span>
+      <button class="delete-btn" aria-label="Remove">×</button>
+    `
+    list.appendChild(row)
+  })
+  if (!items.length && !plannedForToday.length) {
     list.innerHTML = '<div class="empty-state">No care items yet — add one to get started.</div>'
   } else {
     items.forEach((item) => {
@@ -188,8 +334,8 @@ async function renderDaily() {
 }
 
 function updateProgress() {
-  const total = items.length
-  const done = items.filter((i) => completedToday.has(i.id)).length
+  const total = items.length + plannedForToday.length
+  const done = items.filter((i) => completedToday.has(i.id)).length + plannedForToday.filter((t) => t.done).length
   $('progressText').textContent = `${done} of ${total} done today`
   ;($('progressBar') as HTMLElement).style.width = (total ? (done / total) * 100 : 0) + '%'
 }
@@ -309,12 +455,43 @@ function wireStaticControls() {
     const target = e.target as HTMLElement
     const row = target.closest('.care-row') as HTMLElement | null
     if (!row) return
+    const planId = row.dataset.planId
+    if (planId) {
+      if (target.closest('.check-box')) {
+        togglePlannedToday(planId)
+      } else if (target.closest('.delete-btn')) {
+        deletePlannedTask(planId).then((ok) => {
+          if (!ok) return
+          plannedForToday = plannedForToday.filter((t) => t.id !== planId)
+          renderDaily()
+        })
+      }
+      return
+    }
     const id = row.dataset.id
     if (!id) return
     if (target.closest('.check-box')) {
       toggleCompletion(id)
     } else if (target.closest('.delete-btn')) {
       deleteItem(id)
+    }
+  })
+
+  $('planTomorrowToggle').addEventListener('click', () => {
+    planTomorrowOpen = !planTomorrowOpen
+    renderPlanTomorrow()
+  })
+  $('planTomorrowAddBtn').addEventListener('click', addPlannedTask)
+  ;($('planTomorrowInput') as HTMLInputElement).addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') addPlannedTask()
+  })
+  $('planTomorrowList').addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    const row = target.closest('.plan-tomorrow-item') as HTMLElement | null
+    if (!row) return
+    const id = row.dataset.id
+    if (id && target.closest('.plan-tomorrow-delete')) {
+      removeTomorrowTask(id)
     }
   })
 }
@@ -332,12 +509,19 @@ export async function onPetSelected(petId: string | null) {
   items = []
   completedToday = new Set()
   historyDates = []
+  plannedForTomorrow = []
+  plannedForToday = []
+  planTomorrowOpen = false
   if (petId) {
     await fetchItems(petId)
     if (token !== requestToken) return // a newer pet was selected while this was in flight
     completedToday = await fetchCompletionsForDate(petId, todayKey())
     if (token !== requestToken) return
     historyDates = await fetchHistoryDates(petId)
+    if (token !== requestToken) return
+    plannedForTomorrow = await fetchPlannedTasks(petId, tomorrowKey())
+    if (token !== requestToken) return
+    plannedForToday = await fetchPlannedTasks(petId, todayKey())
     if (token !== requestToken) return
   }
   await renderDaily()
@@ -349,4 +533,7 @@ export function onSignedOut() {
   completedToday = new Set()
   historyDates = []
   viewingDate = null
+  plannedForTomorrow = []
+  plannedForToday = []
+  planTomorrowOpen = false
 }
