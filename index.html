@@ -271,8 +271,16 @@
 
   <div id="budgetView" style="display:none;">
     <div class="settings-back-row"><button class="manage-link" id="budgetBackBtn">← Back</button></div>
-    <div class="budget-month-note" id="budgetMonthNote"></div>
-    <div class="card">
+    <div class="budget-month-bar">
+      <div class="day-nav">
+        <button class="day-nav-btn" id="budgetPrevBtn" aria-label="Previous month">‹</button>
+        <select class="day-picker" id="budgetMonthPicker"></select>
+        <button class="day-nav-btn" id="budgetNextBtn" aria-label="Next month">›</button>
+      </div>
+      <div class="budget-month-note" id="budgetMonthNote"></div>
+    </div>
+    <div class="history-banner" id="budgetHistoryBanner" style="display:none;">Viewing a past month — read only.</div>
+    <div class="card" id="budgetBudgetsCard">
       <div class="section-label">Budgets</div>
       <div class="shop-budgets" id="budgetPetInputs" style="border-bottom:none; margin-bottom:0; padding-bottom:0;"></div>
       <div class="field" style="margin-top:14px; margin-bottom:0;">
@@ -284,7 +292,7 @@
       </div>
       <div class="section-label" style="margin-top:18px;">Miscellaneous expenses this month</div>
       <div id="miscExpenseList"></div>
-      <div class="shopping-add-row" style="margin-top:10px;">
+      <div class="shopping-add-row" style="margin-top:10px;" id="miscExpenseAddRow">
         <input type="text" id="misc-expense-item" class="shop-input shop-input-item" placeholder="What did you buy?">
         <input type="number" step="0.01" min="0" id="misc-expense-price" class="shop-input shop-input-price" placeholder="Price">
         <button class="btn-secondary" id="miscExpenseAddBtn" style="margin-top:0;">Log it</button>
@@ -310,7 +318,13 @@
       </div>
     </div>
     <div class="card">
-      <div class="progress-row"><h2>Full Shopping List</h2></div>
+      <div class="section-label">Spending trend</div>
+      <div class="section-text" style="margin-bottom:14px; color:var(--ink-soft); font-size:13px;">Total spend per month, most recent first.</div>
+      <svg id="trendChart" width="100%" height="180" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="trend-legend" id="trendLegend"></div>
+    </div>
+    <div class="card" id="fullShoppingCard">
+      <div class="progress-row"><h2 id="fullShoppingHeading">Full Shopping List</h2></div>
       <div class="section-text" style="margin-bottom:14px; color:var(--ink-soft); font-size:13px;">Every animal's list combined, for one trip to the store.</div>
       <div class="shopping-table-wrap">
         <table class="shopping-table">
@@ -320,7 +334,7 @@
           <tbody id="fullShoppingBody"></tbody>
         </table>
       </div>
-      <div class="shopping-add-row">
+      <div class="shopping-add-row" id="fullShopAddRow">
         <input type="text" id="full-shop-item" class="shop-input shop-input-item" placeholder="Item">
         <input type="text" id="full-shop-qty" class="shop-input shop-input-qty" placeholder="Qty">
         <select id="full-shop-cat" class="shop-input shop-input-cat">

@@ -11,6 +11,27 @@ function lastDayOfMonth(monthKey: string): string {
 }
 
 /**
+ * Snapshots each pet's monthly_budget and the account's misc budget under
+ * `month`, since monthly_budget is a single mutable value with no history —
+ * without this, "last month's budget" would just be whatever it's set to
+ * *today*, which may have changed since.
+ */
+async function snapshotBudgets(userId: string, month: string) {
+  const [petsRes, profileRes] = await Promise.all([
+    supabase.from('pets').select('id, monthly_budget').eq('owner_id', userId),
+    supabase.from('profiles').select('misc_monthly_budget').eq('id', userId).single(),
+  ])
+  if (petsRes.error) {
+    console.error('Failed to read pets for budget snapshot', petsRes.error)
+    return
+  }
+  const rows = (petsRes.data || []).map((p) => ({ owner_id: userId, pet_id: p.id, month, budget: p.monthly_budget }))
+  rows.push({ owner_id: userId, pet_id: null as unknown as string, month, budget: profileRes.data?.misc_monthly_budget ?? null })
+  const { error } = await supabase.from('budget_snapshots').insert(rows)
+  if (error) console.error('Failed to snapshot budgets', error)
+}
+
+/**
  * Archives the previous month's shopping list at a month boundary: every item
  * (bought or not) is stamped with that finished month, except items whose due
  * date is after the reset point — those carry forward untouched on the live
@@ -31,6 +52,8 @@ export async function runMonthlyShoppingArchive(userId: string, lastResetMonth: 
       .is('archived_month', null)
       .or(`due_date.is.null,due_date.lte.${cutoff}`)
     if (error) console.error('Failed to archive shopping list', error)
+
+    await snapshotBudgets(userId, lastResetMonth)
   }
 
   const { error: profileError } = await supabase
