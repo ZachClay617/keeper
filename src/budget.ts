@@ -228,6 +228,7 @@ function renderBudgetInputs() {
         patchCachedPet(petId, { monthly_budget: value })
         renderHeroAndRows()
         refreshCurrentPet()
+        await renderBudgetReport()
       })
     })
   }
@@ -257,6 +258,7 @@ async function saveMiscBudget() {
   }
   miscBudget = monthly
   renderHeroAndRows()
+  await renderBudgetReport()
 }
 
 function renderMiscExpenseList() {
@@ -313,7 +315,7 @@ async function addMiscExpense() {
   items.push({ ...(data as Omit<ShoppingRow, 'shopping_item_pets'>), shopping_item_pets: [] })
   itemInput.value = ''
   priceInput.value = ''
-  renderEverythingAfterItemsChange()
+  await renderEverythingAfterItemsChange()
   itemInput.focus()
 }
 
@@ -615,7 +617,7 @@ async function toggleGot(id: string) {
   }
   item.got = got
   item.got_month = got_month
-  renderEverythingAfterItemsChange()
+  await renderEverythingAfterItemsChange()
 }
 
 async function deleteShoppingItem(id: string) {
@@ -625,7 +627,7 @@ async function deleteShoppingItem(id: string) {
     return
   }
   items = items.filter((i) => i.id !== id)
-  renderEverythingAfterItemsChange()
+  await renderEverythingAfterItemsChange()
 }
 
 async function addFullShoppingItem() {
@@ -684,15 +686,17 @@ async function addFullShoppingItem() {
   selectedForPetIds = new Set()
   renderForOptions()
   $('fullShopForPanel').classList.remove('open')
-  renderEverythingAfterItemsChange()
+  await renderEverythingAfterItemsChange()
   itemInput.focus()
 }
 
-function renderEverythingAfterItemsChange() {
+async function renderEverythingAfterItemsChange() {
   renderMiscExpenseList()
   renderFullShoppingTable()
   renderHeroAndRows()
   refreshCurrentPet()
+  await renderTrendChart()
+  await renderBudgetReport()
 }
 
 async function goToMonth(month: string | null) {
