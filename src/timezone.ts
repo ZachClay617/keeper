@@ -35,3 +35,9 @@ export function todayKey(): string {
 export function currentMonthKey(): string {
   return todayKey().slice(0, 7)
 }
+
+/** The current time of day as HH:MM (24h), in the account's timezone. */
+export function nowTimeKey(): string {
+  const tz = currentTimezone === 'device' ? undefined : currentTimezone
+  return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, ...(tz ? { timeZone: tz } : {}) }).format(new Date())
+}

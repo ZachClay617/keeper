@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 import { onPetSelected as notifyDailyPetSelected, onSignedOut as notifyDailySignedOut } from './daily'
-import { onPetSelected as notifyLogPetSelected, onSignedOut as notifyLogSignedOut } from './careLog'
+import { onPetSelected as notifyLogPetSelected, onSignedOut as notifyLogSignedOut, initUpcomingAlarms, stopUpcomingAlarms } from './careLog'
 import { onPetSelected as notifyShoppingPetSelected, onSignedOut as notifyShoppingSignedOut } from './shopping'
 import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } from './reminders'
 import { showOnly } from './views'
@@ -737,6 +737,7 @@ export async function onSignedIn() {
   renderMemorialToggle()
   showOnly('appMain')
   await initReminders()
+  initUpcomingAlarms()
 }
 
 export function onSignedOut() {
@@ -750,4 +751,5 @@ export function onSignedOut() {
   notifyLogSignedOut()
   notifyShoppingSignedOut()
   remindersSignedOut()
+  stopUpcomingAlarms()
 }

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { todayKey, nowTimeKey } from './timezone'
 import { $, esc } from './dom'
 
 type LogCategory = 'Vet' | 'Vaccine' | 'Grooming' | 'Maintenance' | 'Checkup' | 'Other'
@@ -8,6 +9,7 @@ interface CareLogEntry {
   id: string
   pet_id: string
   date: string
+  time: string | null
   title: string
   category: LogCategory
   created_at: string
@@ -34,6 +36,24 @@ const categoryColor: Record<LogCategory, string> = {
 function formatDate(iso: string): string {
   const dt = new Date(iso + 'T00:00:00')
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatTime(time: string): string {
+  const [h, m] = time.split(':').map(Number)
+  const dt = new Date(2000, 0, 1, h, m)
+  return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+/** "Today", "Tomorrow", or "In N days" relative to the account's current date. */
+function relativeDayLabel(dateKey: string): string {
+  const today = todayKey()
+  if (dateKey === today) return 'Today'
+  const [ty, tm, td] = today.split('-').map(Number)
+  const [dy, dm, dd] = dateKey.split('-').map(Number)
+  const diffDays = Math.round((Date.UTC(dy, dm - 1, dd) - Date.UTC(ty, tm - 1, td)) / 86400000)
+  if (diffDays === 1) return 'Tomorrow'
+  if (diffDays > 1) return `In ${diffDays} days`
+  return formatDate(dateKey)
 }
 
 let currentPetId: string | null = null
@@ -191,9 +211,47 @@ async function addWeightEntry() {
   renderWeightList()
 }
 
+function renderUpcoming() {
+  const wrap = $('upcomingWrap')
+  const card = $('upcomingCard')
+  if (!currentPetId) {
+    card.style.display = 'none'
+    return
+  }
+  const today = todayKey()
+  const upcoming = entries.filter((e) => e.date >= today).sort((a, b) => (a.date === b.date ? (a.time || '').localeCompare(b.time || '') : a.date < b.date ? -1 : 1))
+  if (!upcoming.length) {
+    card.style.display = 'none'
+    return
+  }
+  card.style.display = ''
+  wrap.innerHTML = upcoming
+    .map((entry) => {
+      const color = categoryColor[entry.category] || 'moss'
+      const dayLabel = relativeDayLabel(entry.date)
+      const timeLabel = entry.time ? ` at ${formatTime(entry.time)}` : ''
+      return `
+        <div class="upcoming-card" data-id="${entry.id}">
+          <div class="upcoming-day-badge">${esc(dayLabel)}${esc(timeLabel)}</div>
+          <div class="upcoming-main">
+            <div class="log-title">${esc(entry.title)}</div>
+            <span class="log-chip" style="background: color-mix(in srgb, var(--${color}) 16%, transparent); color: var(--${color});">${entry.category}</span>
+          </div>
+          <button class="delete-btn" aria-label="Delete entry" data-id="${entry.id}">×</button>
+        </div>
+      `
+    })
+    .join('')
+  wrap.querySelectorAll<HTMLButtonElement>('.delete-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteEntry(btn.dataset.id!))
+  })
+}
+
 function renderLog() {
   const wrap = $('logWrap')
   const addBtn = $('addLogBtn')
+
+  renderUpcoming()
 
   if (!currentPetId) {
     wrap.innerHTML = '<div class="empty-state">Add a pet to get started.</div>'
@@ -203,14 +261,16 @@ function renderLog() {
 
   addBtn.style.display = ''
 
-  if (!entries.length) {
+  const today = todayKey()
+  const past = entries.filter((e) => e.date < today)
+  if (!past.length) {
     wrap.innerHTML = '<div class="empty-state">No care history yet — log an event to get started.</div>'
     return
   }
 
   wrap.innerHTML = '<div class="timeline" id="logList"></div>'
   const logList = $('logList')
-  entries.forEach((entry) => {
+  past.forEach((entry) => {
     const color = categoryColor[entry.category] || 'moss'
     const div = document.createElement('div')
     div.className = 'log-entry'
@@ -244,13 +304,15 @@ function openAddEntryModal() {
   const todayStr = new Date().toISOString().slice(0, 10)
   modalBody.innerHTML = `
     <div class="field"><label for="f-date">Date</label><input id="f-date" type="date" value="${todayStr}"></div>
-    <div class="field"><label for="f-title">What happened</label><input id="f-title" type="text" placeholder="e.g. Vet visit for limping"></div>
+    <div class="field"><label for="f-time">Time (optional)</label><input id="f-time" type="time"></div>
+    <div class="field"><label for="f-title">What happened / what's coming up</label><input id="f-title" type="text" placeholder="e.g. Vet visit for limping, or Cage clean"></div>
     <div class="field"><label for="f-logcat">Category</label>
       <select id="f-logcat">
         <option>Vet</option><option>Vaccine</option><option>Grooming</option>
         <option>Maintenance</option><option>Checkup</option><option>Other</option>
       </select>
     </div>
+    <div class="field-hint">A future date shows this under Upcoming. Add a time to also get an in-app alert when it arrives.</div>
     <div class="auth-error" id="logFormError"></div>
     <button class="btn-primary btn-block" id="modalSubmit">Add entry</button>
   `
@@ -271,11 +333,12 @@ async function handleAddEntrySubmit() {
     return
   }
   const date = (document.getElementById('f-date') as HTMLInputElement).value
+  const time = (document.getElementById('f-time') as HTMLInputElement).value
   const category = (document.getElementById('f-logcat') as HTMLSelectElement).value as LogCategory
 
   const { data, error } = await supabase
     .from('care_log_entries')
-    .insert({ pet_id: currentPetId, date, title, category })
+    .insert({ pet_id: currentPetId, date, time: time || null, title, category })
     .select()
     .single()
   if (error) {
@@ -326,4 +389,76 @@ export function onSignedOut() {
   currentPetId = null
   entries = []
   weightEntries = []
+}
+
+// ── Upcoming-event alarms ────────────────────────────────────────────────
+// Polls every account's pets (not just the one currently open) for timed
+// entries due today, and fires an in-app toast (plus a browser notification,
+// if permitted) the moment that time arrives. "Fired" ids are tracked only
+// in memory, so a reload could re-alert once — an accepted tradeoff to avoid
+// a persistence mechanism for something this low-stakes.
+
+interface DueEntry {
+  id: string
+  date: string
+  time: string | null
+  title: string
+  pets: { name: string } | null
+}
+
+let alarmIntervalId: ReturnType<typeof setInterval> | null = null
+const firedAlarmIds = new Set<string>()
+
+function showAlarmToast(entry: DueEntry) {
+  const wrap = $('alarmToastWrap')
+  const toast = document.createElement('div')
+  toast.className = 'alarm-toast'
+  const petLabel = entry.pets ? `${esc(entry.pets.name)}: ` : ''
+  toast.innerHTML = `
+    <span class="alarm-toast-icon">⏰</span>
+    <span class="alarm-toast-text">${petLabel}${esc(entry.title)}</span>
+    <button class="alarm-toast-dismiss" aria-label="Dismiss">×</button>
+  `
+  toast.querySelector('.alarm-toast-dismiss')!.addEventListener('click', () => toast.remove())
+  wrap.appendChild(toast)
+  setTimeout(() => toast.remove(), 15000)
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(entry.pets ? `${entry.pets.name}: ${entry.title}` : entry.title, { body: 'Keeper reminder' })
+  }
+}
+
+async function checkDueAlarms() {
+  const { data, error } = await supabase
+    .from('care_log_entries')
+    .select('id, date, time, title, pets(name)')
+    .eq('date', todayKey())
+    .not('time', 'is', null)
+  if (error) {
+    console.error('Failed to check due reminders', error)
+    return
+  }
+  const now = nowTimeKey()
+  ;((data as unknown as DueEntry[]) || []).forEach((entry) => {
+    if (firedAlarmIds.has(entry.id)) return
+    if (entry.time && entry.time <= now) {
+      firedAlarmIds.add(entry.id)
+      showAlarmToast(entry)
+    }
+  })
+}
+
+export function initUpcomingAlarms() {
+  if (alarmIntervalId) return
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission()
+  }
+  checkDueAlarms()
+  alarmIntervalId = setInterval(checkDueAlarms, 30000)
+}
+
+export function stopUpcomingAlarms() {
+  if (alarmIntervalId) clearInterval(alarmIntervalId)
+  alarmIntervalId = null
+  firedAlarmIds.clear()
 }
