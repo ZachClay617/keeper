@@ -29,6 +29,16 @@ function formatDateKey(key: string): string {
   return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
+function shiftDateKey(key: string, delta: number): string {
+  const [y, m, d] = key.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  dt.setDate(dt.getDate() + delta)
+  const yy = dt.getFullYear()
+  const mm = String(dt.getMonth() + 1).padStart(2, '0')
+  const dd = String(dt.getDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
+
 let currentPetId: string | null = null
 let items: DailyCareItem[] = []
 let completedToday = new Set<string>()
@@ -80,12 +90,14 @@ async function fetchHistoryDates(petId: string): Promise<string[]> {
 
 function renderDayPicker() {
   const picker = $('dayPicker') as HTMLSelectElement
+  const dates = viewingDate && !historyDates.includes(viewingDate) ? [viewingDate, ...historyDates].sort().reverse() : historyDates
   let html = '<option value="today">Today</option>'
-  historyDates.forEach((d) => {
+  dates.forEach((d) => {
     html += `<option value="${d}">${formatDateKey(d)}</option>`
   })
   picker.innerHTML = html
   picker.value = viewingDate || 'today'
+  ;($('dayNextBtn') as HTMLButtonElement).disabled = !viewingDate
 }
 
 async function renderDaily() {
@@ -275,8 +287,18 @@ async function handleAddItemSubmit() {
   await renderDaily()
 }
 
+async function goToDay(delta: number) {
+  if (!currentPetId) return
+  const current = viewingDate || todayKey()
+  const next = shiftDateKey(current, delta)
+  viewingDate = next >= todayKey() ? null : next
+  await renderDaily()
+}
+
 function wireStaticControls() {
   $('addItemBtn').addEventListener('click', openAddItemModal)
+  $('dayPrevBtn').addEventListener('click', () => goToDay(-1))
+  $('dayNextBtn').addEventListener('click', () => goToDay(1))
   ;($('dayPicker') as HTMLSelectElement).addEventListener('change', async (e) => {
     const value = (e.target as HTMLSelectElement).value
     viewingDate = value === 'today' ? null : value
