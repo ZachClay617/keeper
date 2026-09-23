@@ -110,6 +110,8 @@ export async function showCareGuides() {
     wired = true
   }
   showOnly('careGuidesView')
+  activeType = 'dog'
+  ;($('guideSearch') as HTMLInputElement).value = ''
   if (!loaded) await fetchGuides()
   renderTabs()
   renderList()
