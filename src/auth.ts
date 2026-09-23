@@ -12,6 +12,16 @@ function getInitials(text: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase()
 }
 
+/** Shows a user's avatar photo in the header button, falling back to initials. */
+export function renderAccountAvatar(nameOrEmail: string, avatarUrl: string | null | undefined) {
+  const btn = $('accountBtn')
+  if (avatarUrl) {
+    btn.innerHTML = `<img src="${esc(avatarUrl)}" alt="">`
+  } else {
+    btn.textContent = getInitials(nameOrEmail)
+  }
+}
+
 function showError(id: string, message: string) {
   const el = $(id)
   el.textContent = message
@@ -57,7 +67,7 @@ async function renderAccountInfo() {
   let name = ''
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, timezone, color_palette, last_shopping_reset_month')
+    .select('name, timezone, color_palette, last_shopping_reset_month, avatar_url')
     .eq('id', user.id)
     .single()
   if (profile?.name) name = profile.name
@@ -65,9 +75,8 @@ async function renderAccountInfo() {
   applyPalette(profile?.color_palette)
   await runMonthlyShoppingArchive(user.id, profile?.last_shopping_reset_month ?? null)
 
-  const accountBtn = $('accountBtn')
   const accountInfo = $('accountInfo')
-  accountBtn.textContent = getInitials(name || user.email || '?')
+  renderAccountAvatar(name || user.email || '?', profile?.avatar_url)
   accountInfo.innerHTML = `<strong>${esc(name || 'Your account')}</strong>${esc(user.email ?? '')}`
 }
 

@@ -1,6 +1,8 @@
 import { supabase } from './supabaseClient'
 import { timezoneOptions, setAccountTimezone, getAccountTimezone } from './timezone'
 import { paletteOptions, applyPalette } from './palette'
+import { renderAccountAvatar } from './auth'
+import { uploadPhoto } from './imageUpload'
 import { refreshCurrentPet } from './pets'
 import { renderRemindersManager } from './reminders'
 import { showOnly } from './views'
@@ -8,6 +10,43 @@ import { $, esc } from './dom'
 
 let wired = false
 let currentPalette = 'sage'
+let currentAvatarUrl: string | null = null
+let currentName = ''
+
+function renderAvatarPreview() {
+  const preview = $('avatarPreview')
+  if (currentAvatarUrl) {
+    preview.innerHTML = `<img src="${esc(currentAvatarUrl)}" alt="">`
+  } else {
+    const parts = currentName.trim().split(/\s+/).filter(Boolean)
+    preview.textContent = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : currentName.slice(0, 2).toUpperCase() || '?'
+  }
+}
+
+async function handleAvatarUpload(file: File) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+  const btn = $('avatarUploadBtn') as HTMLButtonElement
+  const original = btn.textContent
+  btn.textContent = 'Uploading…'
+  btn.disabled = true
+  try {
+    const url = await uploadPhoto(`avatars/${user.id}/avatar.jpg`, file)
+    const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+    if (error) throw error
+    currentAvatarUrl = url
+    renderAvatarPreview()
+    renderAccountAvatar(currentName || user.email || '?', url)
+  } catch (err) {
+    console.error(err)
+    setNote('profileNote', 'Could not upload photo — try a different image.', true)
+  } finally {
+    btn.textContent = original
+    btn.disabled = false
+  }
+}
 
 function populateTimezoneSelect() {
   const select = $('set-timezone') as HTMLSelectElement
@@ -54,8 +93,11 @@ async function renderSettings() {
   } = await supabase.auth.getUser()
   if (!user) return
 
-  const { data: profile } = await supabase.from('profiles').select('name, timezone, color_palette').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('name, timezone, color_palette, avatar_url').eq('id', user.id).single()
 
+  currentName = profile?.name || ''
+  currentAvatarUrl = profile?.avatar_url || null
+  renderAvatarPreview()
   ;($('set-name') as HTMLInputElement).value = profile?.name || ''
   ;($('set-email') as HTMLInputElement).value = user.email || ''
   ;($('set-password') as HTMLInputElement).value = ''
@@ -119,11 +161,9 @@ async function saveProfile() {
   if (accountInfo) {
     accountInfo.innerHTML = `<strong>${esc(name)}</strong>${esc(user.email || '')}`
   }
-  const accountBtn = document.getElementById('accountBtn')
-  if (accountBtn) {
-    const parts = name.trim().split(/\s+/).filter(Boolean)
-    accountBtn.textContent = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase()
-  }
+  currentName = name
+  renderAccountAvatar(name || user.email || '?', currentAvatarUrl)
+  renderAvatarPreview()
 }
 
 async function savePassword() {
@@ -172,6 +212,12 @@ function wireStaticControls() {
   $('savePasswordBtn').addEventListener('click', savePassword)
   $('set-timezone').addEventListener('change', saveTimezone)
   $('settingsBackBtn').addEventListener('click', hideSettings)
+  $('avatarUploadBtn').addEventListener('click', () => $('avatarFileInput').click())
+  $('avatarFileInput').addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (file) handleAvatarUpload(file)
+    ;(e.target as HTMLInputElement).value = ''
+  })
 }
 
 export function showSettings() {

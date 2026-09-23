@@ -225,6 +225,13 @@
     <div class="settings-back-row"><button class="manage-link" id="settingsBackBtn">← Back</button></div>
     <div class="card">
       <div class="section-label">Profile</div>
+      <div class="avatar-upload-row">
+        <div class="avatar-preview" id="avatarPreview"></div>
+        <div>
+          <button type="button" class="btn-secondary" id="avatarUploadBtn" style="margin-top:0;">Change photo</button>
+          <input type="file" accept="image/*" id="avatarFileInput" style="display:none;">
+        </div>
+      </div>
       <div class="field"><label for="set-name">Name</label><input id="set-name" type="text"></div>
       <div class="field"><label for="set-email">Email</label><input id="set-email" type="email"></div>
       <button class="btn-primary" id="saveProfileBtn">Save profile</button>
