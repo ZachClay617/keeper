@@ -80,7 +80,7 @@ async function fetchAll() {
   const [petsRes, profileRes, itemsRes] = await Promise.all([
     supabase.from('pets').select('id, name, type, monthly_budget').eq('status', 'active').order('created_at', { ascending: true }),
     supabase.from('profiles').select('misc_monthly_budget').eq('id', user.id).single(),
-    supabase.from('shopping_items').select('*, pets(name)').order('created_at', { ascending: true }),
+    supabase.from('shopping_items').select('*, pets(name)').is('archived_month', null).order('created_at', { ascending: true }),
   ])
 
   pets = (petsRes.data as PetBudgetRow[]) || []

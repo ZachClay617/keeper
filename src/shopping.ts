@@ -50,6 +50,7 @@ async function fetchItems(petId: string) {
     .from('shopping_items')
     .select('*')
     .eq('pet_id', petId)
+    .is('archived_month', null)
     .order('created_at', { ascending: true })
   if (error) {
     console.error('Failed to load shopping items', error)

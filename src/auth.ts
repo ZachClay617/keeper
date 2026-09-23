@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import { onSignedIn, onSignedOut } from './pets'
 import { setAccountTimezone } from './timezone'
 import { applyPalette } from './palette'
+import { runMonthlyShoppingArchive } from './shoppingArchive'
 import { $, esc } from './dom'
 
 function getInitials(text: string): string {
@@ -56,12 +57,13 @@ async function renderAccountInfo() {
   let name = ''
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, timezone, color_palette')
+    .select('name, timezone, color_palette, last_shopping_reset_month')
     .eq('id', user.id)
     .single()
   if (profile?.name) name = profile.name
   setAccountTimezone(profile?.timezone)
   applyPalette(profile?.color_palette)
+  await runMonthlyShoppingArchive(user.id, profile?.last_shopping_reset_month ?? null)
 
   const accountBtn = $('accountBtn')
   const accountInfo = $('accountInfo')
