@@ -483,10 +483,15 @@ tr.got .shop-check::after { opacity: 1; }
 .reminder-pet-block:first-child { border-top: none; padding-top: 0; }
 .reminder-pet-name { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
 .reminder-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 13.5px; }
-.reminder-add-row { display: flex; gap: 8px; margin-top: 8px; }
+.reminder-add-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .reminder-input {
-  flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+  flex: 1; min-width: 120px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--bg); color: var(--ink); font-family: inherit; font-size: 13px;
+}
+.reminder-time-input { flex: 0.7; min-width: 100px; }
+.reminder-time-badge {
+  display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 700; color: var(--moss-deep);
+  background: color-mix(in srgb, var(--moss) 16%, transparent); padding: 2px 8px; border-radius: 20px;
 }
 
 .manage-row { display: flex; justify-content: center; gap: 22px; margin-top: 22px; }

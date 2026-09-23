@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { todayKey, nowTimeKey } from './timezone'
 import { $, esc } from './dom'
 
 interface Reminder {
@@ -6,6 +7,7 @@ interface Reminder {
   owner_id: string
   pet_id: string | null
   text: string
+  remind_time: string | null
   created_at: string
   pets: { name: string; status: string } | null
 }
@@ -74,8 +76,15 @@ function renderBell() {
   }
 }
 
+function formatTime(time: string): string {
+  const [h, m] = time.split(':').map(Number)
+  const dt = new Date(2000, 0, 1, h, m)
+  return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
 function reminderRowHtml(r: Reminder): string {
-  return `<div class="reminder-row"><span class="care-label">${esc(r.text)}</span><button class="delete-btn reminder-delete-btn" data-id="${r.id}" aria-label="Remove reminder">×</button></div>`
+  const timeBadge = r.remind_time ? `<span class="reminder-time-badge">${esc(formatTime(r.remind_time))}</span>` : ''
+  return `<div class="reminder-row"><span class="care-label">${esc(r.text)}${timeBadge}</span><button class="delete-btn reminder-delete-btn" data-id="${r.id}" aria-label="Remove reminder">×</button></div>`
 }
 
 function emptyRow(): string {
@@ -102,6 +111,7 @@ function renderManager() {
             pet.status === 'active'
               ? `<div class="reminder-add-row">
                   <input type="text" class="reminder-input" data-pet="${pet.id}" placeholder="Add a reminder for ${esc(pet.name)}">
+                  <input type="time" class="reminder-input reminder-time-input" data-pet="${pet.id}" title="Optional: time to alert">
                   <button class="btn-secondary reminder-add-btn" data-pet="${pet.id}" style="margin-top:0;">Add</button>
                 </div>`
               : ''
@@ -117,6 +127,7 @@ function renderManager() {
       ${generalRows}
       <div class="reminder-add-row">
         <input type="text" class="reminder-input" data-pet="" placeholder="Add a general reminder">
+        <input type="time" class="reminder-input reminder-time-input" data-pet="" title="Optional: time to alert">
         <button class="btn-secondary reminder-add-btn" data-pet="" style="margin-top:0;">Add</button>
       </div>
     </div>
@@ -132,8 +143,8 @@ function renderManager() {
 }
 
 async function handleAdd(petId: string | null) {
-  const selector = `.reminder-input[data-pet="${petId || ''}"]`
-  const input = document.querySelector(selector) as HTMLInputElement | null
+  const input = document.querySelector(`.reminder-input[data-pet="${petId || ''}"]`) as HTMLInputElement | null
+  const timeInput = document.querySelector(`.reminder-time-input[data-pet="${petId || ''}"]`) as HTMLInputElement | null
   if (!input) return
   const text = input.value.trim()
   if (!text) {
@@ -144,7 +155,8 @@ async function handleAdd(petId: string | null) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return
-  const { error } = await supabase.from('reminders').insert({ owner_id: user.id, pet_id: petId, text })
+  const remind_time = timeInput?.value || null
+  const { error } = await supabase.from('reminders').insert({ owner_id: user.id, pet_id: petId, text, remind_time })
   if (error) {
     console.error(error)
     return
@@ -184,6 +196,7 @@ export async function initReminders() {
   }
   await fetchReminders()
   renderBell()
+  initReminderAlarms()
 }
 
 /** Re-fetches and re-renders just the bell — call after any pet/reminder mutation elsewhere. */
@@ -206,4 +219,61 @@ export function onSignedOut() {
   if (badge) badge.style.display = 'none'
   const list = document.getElementById('notifList')
   if (list) list.innerHTML = ''
+  stopReminderAlarms()
+}
+
+// ── Reminder-time alarms ─────────────────────────────────────────────────
+// Reminders have no date — they're evergreen — so a timed one re-fires once
+// per day it's still set. "Fired today" is tracked as `id:dateKey`, which
+// naturally resets itself the moment the date rolls over.
+
+let alarmIntervalId: ReturnType<typeof setInterval> | null = null
+const firedToday = new Set<string>()
+
+function showReminderAlarmToast(r: Reminder) {
+  const wrap = $('alarmToastWrap')
+  const toast = document.createElement('div')
+  toast.className = 'alarm-toast'
+  const petLabel = r.pets ? `${esc(r.pets.name)}: ` : ''
+  toast.innerHTML = `
+    <span class="alarm-toast-icon">⏰</span>
+    <span class="alarm-toast-text">${petLabel}${esc(r.text)}</span>
+    <button class="alarm-toast-dismiss" aria-label="Dismiss">×</button>
+  `
+  toast.querySelector('.alarm-toast-dismiss')!.addEventListener('click', () => toast.remove())
+  wrap.appendChild(toast)
+  setTimeout(() => toast.remove(), 15000)
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(r.pets ? `${r.pets.name}: ${r.text}` : r.text, { body: 'Keeper reminder' })
+  }
+}
+
+function checkReminderAlarms() {
+  const now = nowTimeKey()
+  const today = todayKey()
+  visibleReminders().forEach((r) => {
+    if (!r.remind_time) return
+    const key = `${r.id}:${today}`
+    if (firedToday.has(key)) return
+    if (r.remind_time <= now) {
+      firedToday.add(key)
+      showReminderAlarmToast(r)
+    }
+  })
+}
+
+export function initReminderAlarms() {
+  if (alarmIntervalId) return
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission()
+  }
+  checkReminderAlarms()
+  alarmIntervalId = setInterval(checkReminderAlarms, 30000)
+}
+
+export function stopReminderAlarms() {
+  if (alarmIntervalId) clearInterval(alarmIntervalId)
+  alarmIntervalId = null
+  firedToday.clear()
 }
