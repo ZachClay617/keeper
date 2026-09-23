@@ -9,7 +9,6 @@ type ShopCategory = 'Food' | 'Litter & Bedding' | 'Medical' | 'Toys' | 'Grooming
 interface ShoppingItem {
   id: string
   owner_id: string
-  pet_id: string | null
   item: string
   qty: string | null
   category: ShopCategory
@@ -24,6 +23,11 @@ interface PetRef {
   id: string
   name: string
   monthly_budget: number | null
+}
+
+interface PetOption {
+  id: string
+  name: string
 }
 
 const categoryColor: Record<ShopCategory, string> = {
@@ -44,13 +48,15 @@ function formatDate(iso: string | null): string {
 
 let currentPet: PetRef | null = null
 let items: ShoppingItem[] = []
+let otherPets: PetOption[] = []
+let selectedExtraPetIds = new Set<string>()
 let wired = false
 
 async function fetchItems(petId: string) {
   const { data, error } = await supabase
     .from('shopping_items')
-    .select('*')
-    .eq('pet_id', petId)
+    .select('*, shopping_item_pets!inner(pet_id)')
+    .eq('shopping_item_pets.pet_id', petId)
     .is('archived_month', null)
     .order('created_at', { ascending: true })
   if (error) {
@@ -59,6 +65,21 @@ async function fetchItems(petId: string) {
     return
   }
   items = (data as ShoppingItem[]) || []
+}
+
+async function fetchOtherPets(petId: string) {
+  const { data, error } = await supabase
+    .from('pets')
+    .select('id, name')
+    .eq('status', 'active')
+    .neq('id', petId)
+    .order('created_at', { ascending: true })
+  if (error) {
+    console.error('Failed to load other pets', error)
+    otherPets = []
+    return
+  }
+  otherPets = (data as PetOption[]) || []
 }
 
 function renderBudgetField() {
@@ -84,6 +105,28 @@ function renderBudgetField() {
       patchCachedPet(currentPet.id, { monthly_budget })
     }
   })
+}
+
+function renderForMultiselect() {
+  const btn = $('shopForBtn')
+  const panel = $('shopForPanel')
+  if (!otherPets.length) {
+    btn.style.display = 'none'
+    return
+  }
+  btn.style.display = ''
+  const count = selectedExtraPetIds.size
+  btn.textContent = count ? `Also for ${count} more` : 'Also for…'
+  panel.innerHTML = otherPets
+    .map(
+      (p) => `
+      <label class="for-multiselect-option">
+        <input type="checkbox" value="${p.id}" ${selectedExtraPetIds.has(p.id) ? 'checked' : ''}>
+        ${esc(p.name)}
+      </label>
+    `
+    )
+    .join('')
 }
 
 function renderShopping() {
@@ -178,7 +221,6 @@ async function addItem() {
     .from('shopping_items')
     .insert({
       owner_id: user.id,
-      pet_id: currentPet.id,
       item: itemVal,
       qty: qtyInput.value.trim() || null,
       category: catSelect.value as ShopCategory,
@@ -194,11 +236,20 @@ async function addItem() {
     return
   }
 
+  const petIds = [currentPet.id, ...selectedExtraPetIds]
+  const { error: linkError } = await supabase
+    .from('shopping_item_pets')
+    .insert(petIds.map((pet_id) => ({ shopping_item_id: data.id, pet_id, owner_id: user.id })))
+  if (linkError) console.error(linkError)
+
   items.push(data as ShoppingItem)
   itemInput.value = ''
   qtyInput.value = ''
   dueInput.value = ''
   priceInput.value = ''
+  selectedExtraPetIds = new Set()
+  renderForMultiselect()
+  $('shopForPanel').classList.remove('open')
   renderShopping()
   itemInput.focus()
 }
@@ -223,6 +274,18 @@ function wireStaticControls() {
       }
     })
   })
+  $('shopForBtn').addEventListener('click', (e) => {
+    e.stopPropagation()
+    $('shopForPanel').classList.toggle('open')
+  })
+  $('shopForPanel').addEventListener('change', (e) => {
+    const input = e.target as HTMLInputElement
+    if (input.checked) selectedExtraPetIds.add(input.value)
+    else selectedExtraPetIds.delete(input.value)
+    renderForMultiselect()
+  })
+  $('shopForPanel').addEventListener('click', (e) => e.stopPropagation())
+  document.addEventListener('click', () => $('shopForPanel').classList.remove('open'))
 }
 
 let requestToken = 0
@@ -235,14 +298,21 @@ export async function onPetSelected(pet: PetRef | null) {
   const token = ++requestToken
   currentPet = pet
   items = []
+  otherPets = []
+  selectedExtraPetIds = new Set()
   if (pet) {
     await fetchItems(pet.id)
     if (token !== requestToken) return // a newer pet was selected while this was in flight
+    await fetchOtherPets(pet.id)
+    if (token !== requestToken) return
   }
+  renderForMultiselect()
   renderShopping()
 }
 
 export function onSignedOut() {
   currentPet = null
   items = []
+  otherPets = []
+  selectedExtraPetIds = new Set()
 }

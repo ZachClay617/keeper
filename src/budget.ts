@@ -10,7 +10,6 @@ type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'o
 
 interface ShoppingRow {
   id: string
-  pet_id: string | null
   item: string
   qty: string | null
   category: ShopCategory
@@ -18,7 +17,7 @@ interface ShoppingRow {
   est_price: number | null
   got: boolean
   got_month: string | null
-  pets: { name: string } | null
+  shopping_item_pets: { pet_id: string; pets: { name: string } | null }[]
 }
 
 interface PetBudgetRow {
@@ -92,6 +91,7 @@ function shiftMonthKey(key: string, delta: number): string {
 let pets: PetBudgetRow[] = []
 let miscBudget: number | null = null
 let items: ShoppingRow[] = []
+let selectedForPetIds = new Set<string>()
 let wired = false
 let viewingMonth: string | null = null // null = current (live, editable)
 let availableMonths: string[] = [] // past months with archived data, descending
@@ -116,7 +116,11 @@ async function fetchAll() {
     const [petsRes, profileRes, itemsRes] = await Promise.all([
       supabase.from('pets').select('id, name, type, monthly_budget').eq('status', 'active').order('created_at', { ascending: true }),
       supabase.from('profiles').select('misc_monthly_budget').eq('id', user.id).single(),
-      supabase.from('shopping_items').select('*, pets(name)').is('archived_month', null).order('created_at', { ascending: true }),
+      supabase
+        .from('shopping_items')
+        .select('*, shopping_item_pets(pet_id, pets(name))')
+        .is('archived_month', null)
+        .order('created_at', { ascending: true }),
     ])
     pets = (petsRes.data as PetBudgetRow[]) || []
     miscBudget = profileRes.data?.misc_monthly_budget ?? null
@@ -127,7 +131,11 @@ async function fetchAll() {
   const [snapshotsRes, allPetsRes, itemsRes] = await Promise.all([
     supabase.from('budget_snapshots').select('pet_id, budget').eq('owner_id', user.id).eq('month', viewingMonth),
     supabase.from('pets').select('id, name, type'),
-    supabase.from('shopping_items').select('*, pets(name)').eq('archived_month', viewingMonth).order('created_at', { ascending: true }),
+    supabase
+      .from('shopping_items')
+      .select('*, shopping_item_pets(pet_id, pets(name))')
+      .eq('archived_month', viewingMonth)
+      .order('created_at', { ascending: true }),
   ])
   const snapshots = (snapshotsRes.data as { pet_id: string | null; budget: number | null }[]) || []
   const petLookup = new Map((allPetsRes.data as { id: string; name: string; type: PetType }[] | null || []).map((p) => [p.id, p]))
@@ -148,9 +156,13 @@ function computeRows(): RowData[] {
     label: p.name,
     emoji: typeEmoji[p.type] || '🐾',
     budget: p.monthly_budget,
-    spent: items.filter((i) => i.pet_id === p.id && i.got && i.got_month === month).reduce((s, i) => s + (Number(i.est_price) || 0), 0),
+    spent: items
+      .filter((i) => i.shopping_item_pets.some((a) => a.pet_id === p.id) && i.got && i.got_month === month)
+      .reduce((s, i) => s + (Number(i.est_price) || 0), 0),
   }))
-  const miscSpent = items.filter((i) => !i.pet_id && i.got && i.got_month === month).reduce((s, i) => s + (Number(i.est_price) || 0), 0)
+  const miscSpent = items
+    .filter((i) => !i.shopping_item_pets.length && i.got && i.got_month === month)
+    .reduce((s, i) => s + (Number(i.est_price) || 0), 0)
   rows.push({ key: 'misc', label: 'Miscellaneous', emoji: '🧺', budget: miscBudget, spent: miscSpent })
   return rows
 }
@@ -254,7 +266,7 @@ async function saveMiscBudget() {
 function renderMiscExpenseList() {
   const wrap = $('miscExpenseList')
   const readonly = !!viewingMonth
-  const miscItems = items.filter((i) => !i.pet_id)
+  const miscItems = items.filter((i) => !i.shopping_item_pets.length)
   if (!miscItems.length) {
     wrap.innerHTML = '<div class="empty-state" style="padding:6px 0;">Nothing logged yet.</div>'
     return
@@ -290,20 +302,19 @@ async function addMiscExpense() {
     .from('shopping_items')
     .insert({
       owner_id: user.id,
-      pet_id: null,
       item: itemVal,
       category: 'Other' as ShopCategory,
       est_price: priceInput.value ? Number(priceInput.value) : null,
       got: true,
       got_month: currentMonthKey(),
     })
-    .select('*, pets(name)')
+    .select()
     .single()
   if (error) {
     console.error(error)
     return
   }
-  items.push(data as unknown as ShoppingRow)
+  items.push({ ...(data as Omit<ShoppingRow, 'shopping_item_pets'>), shopping_item_pets: [] })
   itemInput.value = ''
   priceInput.value = ''
   renderEverythingAfterItemsChange()
@@ -392,18 +403,18 @@ async function renderTrendChart() {
   const [itemsRes, petsRes] = await Promise.all([
     supabase
       .from('shopping_items')
-      .select('pet_id, got_month, est_price')
+      .select('got_month, est_price, shopping_item_pets(pet_id)')
       .eq('owner_id', user.id)
       .eq('got', true)
       .in('got_month', monthKeys),
     supabase.from('pets').select('id, name'),
   ])
-  const rows = (itemsRes.data as { pet_id: string | null; got_month: string; est_price: number | null }[]) || []
+  const rows = (itemsRes.data as { got_month: string; est_price: number | null; shopping_item_pets: { pet_id: string }[] }[]) || []
   const petNames = new Map((petsRes.data as { id: string; name: string }[] | null || []).map((p) => [p.id, p.name]))
 
   // Ordered list of "series" (pets that have spend in this window, plus Misc last if present)
-  const seriesIds = Array.from(new Set(rows.filter((r) => r.pet_id).map((r) => r.pet_id as string)))
-  const hasMisc = rows.some((r) => !r.pet_id)
+  const seriesIds = Array.from(new Set(rows.flatMap((r) => r.shopping_item_pets.map((a) => a.pet_id))))
+  const hasMisc = rows.some((r) => !r.shopping_item_pets.length)
   const series: { id: string | null; label: string }[] = seriesIds.map((id) => ({ id, label: petNames.get(id) || 'Pet' }))
   if (hasMisc) series.push({ id: null, label: 'Miscellaneous' })
 
@@ -412,9 +423,12 @@ async function renderTrendChart() {
   rows.forEach((r) => {
     const mi = monthKeys.indexOf(r.got_month)
     if (mi === -1) return
-    const si = series.findIndex((s) => s.id === r.pet_id)
-    if (si === -1) return
-    totals[mi][si] += Number(r.est_price) || 0
+    const assignedIds = r.shopping_item_pets.length ? r.shopping_item_pets.map((a) => a.pet_id) : [null]
+    assignedIds.forEach((petId) => {
+      const si = series.findIndex((s) => s.id === petId)
+      if (si === -1) return
+      totals[mi][si] += Number(r.est_price) || 0
+    })
   })
   const monthTotals = totals.map((seriesAmounts) => seriesAmounts.reduce((s, v) => s + v, 0))
   const maxTotal = Math.max(1, ...monthTotals)
@@ -453,12 +467,24 @@ async function renderTrendChart() {
 }
 
 function renderForOptions() {
-  const sel = $('full-shop-for') as HTMLSelectElement
-  let html = '<option value="">General</option>'
-  pets.forEach((p) => {
-    html += `<option value="${p.id}">${typeEmoji[p.type]} ${esc(p.name)}</option>`
-  })
-  sel.innerHTML = html
+  const btn = $('fullShopForBtn')
+  const panel = $('fullShopForPanel')
+  const selectedNames = pets.filter((p) => selectedForPetIds.has(p.id)).map((p) => p.name)
+  btn.textContent = selectedNames.length ? selectedNames.join(', ') : 'General'
+  if (!pets.length) {
+    panel.innerHTML = '<div class="for-multiselect-empty">Add a pet first.</div>'
+    return
+  }
+  panel.innerHTML = pets
+    .map(
+      (p) => `
+      <label class="for-multiselect-option">
+        <input type="checkbox" value="${p.id}" ${selectedForPetIds.has(p.id) ? 'checked' : ''}>
+        ${typeEmoji[p.type]} ${esc(p.name)}
+      </label>
+    `
+    )
+    .join('')
 }
 
 function renderFullShoppingTable() {
@@ -470,7 +496,9 @@ function renderFullShoppingTable() {
   body.innerHTML = items
     .map((item) => {
       const color = categoryColor[item.category] || 'moss'
-      const forLabel = item.pets ? esc(item.pets.name) : 'General'
+      const forLabel = item.shopping_item_pets.length
+        ? item.shopping_item_pets.map((a) => esc(a.pets?.name || 'Unknown pet')).join(', ')
+        : 'General'
       return `
         <tr class="${item.got ? 'got' : ''}" data-id="${item.id}">
           <td><button class="shop-check" aria-label="Mark as bought"></button></td>
@@ -518,7 +546,6 @@ async function addFullShoppingItem() {
   const catSelect = $('full-shop-cat') as HTMLSelectElement
   const dueInput = $('full-shop-due') as HTMLInputElement
   const priceInput = $('full-shop-price') as HTMLInputElement
-  const forSelect = $('full-shop-for') as HTMLSelectElement
 
   const itemVal = itemInput.value.trim()
   if (!itemVal) {
@@ -530,13 +557,10 @@ async function addFullShoppingItem() {
   } = await supabase.auth.getUser()
   if (!user) return
 
-  const petId = forSelect.value || null
-
   const { data, error } = await supabase
     .from('shopping_items')
     .insert({
       owner_id: user.id,
-      pet_id: petId,
       item: itemVal,
       qty: qtyInput.value.trim() || null,
       category: catSelect.value as ShopCategory,
@@ -544,7 +568,7 @@ async function addFullShoppingItem() {
       est_price: priceInput.value ? Number(priceInput.value) : null,
       got: false,
     })
-    .select('*, pets(name)')
+    .select()
     .single()
 
   if (error) {
@@ -552,11 +576,26 @@ async function addFullShoppingItem() {
     return
   }
 
-  items.push(data as unknown as ShoppingRow)
+  const petIds = Array.from(selectedForPetIds)
+  if (petIds.length) {
+    const { error: linkError } = await supabase
+      .from('shopping_item_pets')
+      .insert(petIds.map((pet_id) => ({ shopping_item_id: data.id, pet_id, owner_id: user.id })))
+    if (linkError) console.error(linkError)
+  }
+
+  const row: ShoppingRow = {
+    ...(data as Omit<ShoppingRow, 'shopping_item_pets'>),
+    shopping_item_pets: petIds.map((pet_id) => ({ pet_id, pets: { name: pets.find((p) => p.id === pet_id)?.name || '' } })),
+  }
+  items.push(row)
   itemInput.value = ''
   qtyInput.value = ''
   dueInput.value = ''
   priceInput.value = ''
+  selectedForPetIds = new Set()
+  renderForOptions()
+  $('fullShopForPanel').classList.remove('open')
   renderEverythingAfterItemsChange()
   itemInput.focus()
 }
@@ -607,6 +646,18 @@ function wireStaticControls() {
       deleteShoppingItem(id)
     }
   })
+  $('fullShopForBtn').addEventListener('click', (e) => {
+    e.stopPropagation()
+    $('fullShopForPanel').classList.toggle('open')
+  })
+  $('fullShopForPanel').addEventListener('change', (e) => {
+    const input = e.target as HTMLInputElement
+    if (input.checked) selectedForPetIds.add(input.value)
+    else selectedForPetIds.delete(input.value)
+    renderForOptions()
+  })
+  $('fullShopForPanel').addEventListener('click', (e) => e.stopPropagation())
+  document.addEventListener('click', () => $('fullShopForPanel').classList.remove('open'))
 }
 
 async function renderBudget() {
