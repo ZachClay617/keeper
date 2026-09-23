@@ -3,6 +3,7 @@ import { initAuth } from './auth'
 import { showSettings } from './settings'
 import { showBudget } from './budget'
 import { showCareGuides } from './careGuides'
+import { showPhotos } from './photosPage'
 import { setActiveTab } from './pets'
 import { showOnly } from './views'
 import { startClock } from './clock'
@@ -23,6 +24,11 @@ document.getElementById('budgetBtn')?.addEventListener('click', () => {
 document.getElementById('careGuidesBtn')?.addEventListener('click', () => {
   document.getElementById('accountPanel')?.classList.remove('open')
   showCareGuides()
+})
+
+document.getElementById('photosBtn')?.addEventListener('click', () => {
+  document.getElementById('accountPanel')?.classList.remove('open')
+  showPhotos()
 })
 
 document.getElementById('homeBtn')?.addEventListener('click', () => {

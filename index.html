@@ -101,6 +101,7 @@
           <button class="manage-link" id="budgetBtn">Budget</button>
           <button class="manage-link" id="settingsBtn">Settings</button>
           <button class="manage-link" id="careGuidesBtn">Care Guides</button>
+          <button class="manage-link" id="photosBtn">Photos</button>
           <button class="manage-link delete-link" id="logoutBtn">Log out</button>
         </div>
       </div>
@@ -135,7 +136,11 @@
   <section class="panel active" id="panel-profile">
     <div class="card">
       <div class="profile-top">
-        <div class="profile-emoji" id="profileEmoji"></div>
+        <div class="profile-avatar-wrap">
+          <div class="profile-emoji" id="profileEmoji"></div>
+          <button type="button" class="pet-avatar-edit-btn" id="petAvatarBtn" aria-label="Change photo">📷</button>
+          <input type="file" accept="image/*" id="petAvatarFileInput" style="display:none;">
+        </div>
         <div>
           <h1 class="profile-name" id="profileName"></h1>
           <div class="profile-species" id="profileSpecies"></div>
@@ -151,6 +156,12 @@
     <div class="card">
       <div class="section-label">Care notes</div>
       <div class="section-text" id="profileNotes"></div>
+    </div>
+    <div class="card" id="petGalleryCard">
+      <div class="section-label">Photos</div>
+      <div class="photo-grid" id="petGalleryGrid"></div>
+      <button class="add-row-btn" id="petGalleryAddBtn">+ Add photos</button>
+      <input type="file" accept="image/*" multiple id="petGalleryFileInput" style="display:none;">
     </div>
     <div class="manage-row" id="profileManageRow">
       <button class="manage-link" id="editPetBtn">Edit profile</button>
@@ -332,6 +343,11 @@
       <div id="guideNoMatch" class="empty-state" style="display:none;">No guides match that search.</div>
       <div id="guideList"></div>
     </div>
+  </div>
+
+  <div id="photosView" style="display:none;">
+    <div class="settings-back-row"><button class="manage-link" id="photosBackBtn">← Back</button></div>
+    <div id="photosContent"></div>
   </div>
 
   <footer>Layout and copy are illustrative — not final content.</footer>

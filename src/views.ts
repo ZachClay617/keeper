@@ -1,4 +1,4 @@
-const containers = ['appMain', 'memorialView', 'settingsView', 'budgetView', 'careGuidesView'] as const
+const containers = ['appMain', 'memorialView', 'settingsView', 'budgetView', 'careGuidesView', 'photosView'] as const
 type Container = (typeof containers)[number]
 
 /** Shows exactly one of the app's top-level view containers, hiding the rest. */

@@ -5,6 +5,7 @@ import { onPetSelected as notifyShoppingPetSelected, onSignedOut as notifyShoppi
 import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } from './reminders'
 import { showOnly } from './views'
 import { $, esc } from './dom'
+import { uploadPhoto, deletePhoto } from './imageUpload'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
 type PetStatus = 'active' | 'memorial'
@@ -26,6 +27,14 @@ interface Pet {
   passed_date: string | null
   memory_note: string | null
   monthly_budget: number | null
+  avatar_url: string | null
+  created_at: string
+}
+
+interface PetPhoto {
+  id: string
+  pet_id: string
+  url: string
   created_at: string
 }
 
@@ -129,7 +138,8 @@ function createAvatarButton(pet: Pet): HTMLButtonElement {
   const btn = document.createElement('button')
   btn.className = 'pet-avatar' + (pet.id === currentPetId ? ' active' : '')
   btn.dataset.id = pet.id
-  btn.innerHTML = `<span class="circle">${typeEmoji[pet.type]}</span><span class="name">${esc(pet.name)}</span>`
+  const circleContent = pet.avatar_url ? `<img src="${esc(pet.avatar_url)}" alt="">` : typeEmoji[pet.type]
+  btn.innerHTML = `<span class="circle">${circleContent}</span><span class="name">${esc(pet.name)}</span>`
   btn.addEventListener('click', () => selectPet(pet.id))
   return btn
 }
@@ -180,11 +190,19 @@ function renderProfile() {
     $('profileNotes').textContent = ''
     $('statGrid').innerHTML = '<div class="empty-state">Add a pet to get started.</div>'
     manageRow.style.display = 'none'
+    $('petGalleryCard').style.display = 'none'
     return
   }
 
   manageRow.style.display = ''
-  $('profileEmoji').textContent = typeEmoji[pet.type]
+  $('petGalleryCard').style.display = ''
+  const profileEmoji = $('profileEmoji')
+  profileEmoji.innerHTML = pet.avatar_url ? `<img src="${esc(pet.avatar_url)}" alt="">` : esc(typeEmoji[pet.type])
+  if (galleryLoadedForPetId !== pet.id) {
+    galleryPhotos = []
+    renderGallery()
+    loadAndRenderGallery(pet.id)
+  }
   $('profileName').textContent = pet.name
   $('profileSpecies').textContent = speciesLabel(pet)
   $('profileId').textContent = 'ID #' + pet.id.slice(0, 8).toUpperCase()
@@ -203,6 +221,117 @@ function renderProfile() {
       div.innerHTML = `<div class="stat-label">${s.label}</div><div class="stat-value">${esc(s.value)}</div>`
       statGrid.appendChild(div)
     })
+  }
+}
+
+// ── Pet photo gallery ───────────────────────────────────────────────────
+
+let galleryPhotos: PetPhoto[] = []
+let galleryLoadedForPetId: string | null = null
+
+function renderGallery() {
+  const grid = $('petGalleryGrid')
+  if (!galleryPhotos.length) {
+    grid.innerHTML = '<div class="empty-state" style="padding:4px 0;">No photos yet.</div>'
+    return
+  }
+  grid.innerHTML = galleryPhotos
+    .map(
+      (p) => `
+      <div class="photo-thumb" data-id="${p.id}">
+        <img src="${esc(p.url)}" alt="">
+        <button class="photo-delete-btn" aria-label="Delete photo">×</button>
+      </div>
+    `
+    )
+    .join('')
+  grid.querySelectorAll<HTMLElement>('.photo-thumb').forEach((thumb) => {
+    thumb.querySelector('.photo-delete-btn')?.addEventListener('click', () => deleteGalleryPhoto(thumb.dataset.id!))
+  })
+}
+
+async function loadAndRenderGallery(petId: string) {
+  const { data, error } = await supabase
+    .from('pet_photos')
+    .select('*')
+    .eq('pet_id', petId)
+    .order('created_at', { ascending: false })
+  if (error) {
+    console.error('Failed to load pet photos', error)
+    return
+  }
+  if (petId !== currentPetId) return // a newer pet was selected while this was in flight
+  galleryPhotos = (data as PetPhoto[]) || []
+  galleryLoadedForPetId = petId
+  renderGallery()
+}
+
+async function handleGalleryUpload(files: FileList) {
+  // Snapshot synchronously — the caller resets input.value right after this
+  // is invoked, which clears the live FileList before any `await` resolves.
+  const fileArray = Array.from(files)
+  const petId = currentPetId
+  if (!petId) return
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+  const addBtn = $('petGalleryAddBtn') as HTMLButtonElement
+  const original = addBtn.textContent
+  addBtn.disabled = true
+  for (const file of fileArray) {
+    addBtn.textContent = `Uploading…`
+    try {
+      const url = await uploadPhoto(`pets/${user.id}/${petId}/gallery/${crypto.randomUUID()}.jpg`, file, 1200)
+      const { data, error } = await supabase.from('pet_photos').insert({ pet_id: petId, url }).select().single()
+      if (error) throw error
+      if (petId === currentPetId) {
+        galleryPhotos.unshift(data as PetPhoto)
+        renderGallery()
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  addBtn.textContent = original
+  addBtn.disabled = false
+}
+
+async function deleteGalleryPhoto(id: string) {
+  const photo = galleryPhotos.find((p) => p.id === id)
+  if (!photo) return
+  const { error } = await supabase.from('pet_photos').delete().eq('id', id)
+  if (error) {
+    console.error(error)
+    return
+  }
+  const path = photo.url.split('/photos/')[1]?.split('?')[0]
+  if (path) deletePhoto(path).catch((err) => console.error('Failed to remove stored photo', err))
+  galleryPhotos = galleryPhotos.filter((p) => p.id !== id)
+  renderGallery()
+}
+
+async function handlePetAvatarUpload(file: File) {
+  const petId = currentPetId
+  if (!petId) return
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+  const btn = $('petAvatarBtn') as HTMLButtonElement
+  btn.disabled = true
+  try {
+    const url = await uploadPhoto(`pets/${user.id}/${petId}/profile.jpg`, file, 800)
+    const { error } = await supabase.from('pets').update({ avatar_url: url }).eq('id', petId)
+    if (error) throw error
+    const pet = pets.find((p) => p.id === petId)
+    if (pet) pet.avatar_url = url
+    renderProfile()
+    renderSwitcher()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    btn.disabled = false
   }
 }
 
@@ -424,7 +553,7 @@ function closeModal() {
   actionTargetId = null
 }
 
-function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 'passed_date' | 'memory_note' | 'monthly_budget'> | null {
+function readPetForm(): Omit<Pet, 'id' | 'owner_id' | 'created_at' | 'status' | 'passed_date' | 'memory_note' | 'monthly_budget' | 'avatar_url'> | null {
   const nameInput = document.getElementById('f-name') as HTMLInputElement
   const name = nameInput.value.trim()
   if (!name) {
@@ -575,6 +704,18 @@ function wireStaticControls() {
     openModal('moveMemorial')
   })
   $('memorialToggle').addEventListener('click', () => showMemorialView(!viewingMemorial))
+  $('petAvatarBtn').addEventListener('click', () => $('petAvatarFileInput').click())
+  $('petAvatarFileInput').addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (file) handlePetAvatarUpload(file)
+    ;(e.target as HTMLInputElement).value = ''
+  })
+  $('petGalleryAddBtn').addEventListener('click', () => $('petGalleryFileInput').click())
+  $('petGalleryFileInput').addEventListener('change', (e) => {
+    const files = (e.target as HTMLInputElement).files
+    if (files && files.length) handleGalleryUpload(files)
+    ;(e.target as HTMLInputElement).value = ''
+  })
 }
 
 let wired = false
@@ -597,6 +738,8 @@ export function onSignedOut() {
   currentPetId = null
   lastNotifiedPetId = undefined
   viewingMemorial = false
+  galleryPhotos = []
+  galleryLoadedForPetId = null
   notifyDailySignedOut()
   notifyLogSignedOut()
   notifyShoppingSignedOut()

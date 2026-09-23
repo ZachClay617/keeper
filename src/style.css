@@ -110,8 +110,9 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
 .pet-avatar .circle {
   width: 56px; height: 56px; border-radius: 50%; background: var(--surface);
   border: 2px solid var(--line); display: flex; align-items: center; justify-content: center;
-  font-size: 26px; transition: border-color 0.15s ease, transform 0.15s ease;
+  font-size: 26px; transition: border-color 0.15s ease, transform 0.15s ease; overflow: hidden;
 }
+.pet-avatar .circle img { width: 100%; height: 100%; object-fit: cover; }
 .pet-avatar span.name { font-size: 12.5px; }
 .pet-avatar.active .circle { border-color: var(--moss); transform: translateY(-2px); }
 .pet-avatar.active span.name { color: var(--ink); font-weight: 600; }
@@ -298,10 +299,34 @@ tr.got .shop-check::after { opacity: 1; }
 @media (max-width: 420px) { .guide-field-grid { grid-template-columns: 1fr; } }
 
 .profile-top { display: flex; gap: 20px; align-items: center; }
+.profile-avatar-wrap { position: relative; flex-shrink: 0; }
 .profile-emoji {
   width: 84px; height: 84px; border-radius: 20px; background: var(--mist);
   display: flex; align-items: center; justify-content: center; font-size: 42px; flex-shrink: 0;
+  overflow: hidden;
 }
+.profile-emoji img { width: 100%; height: 100%; object-fit: cover; }
+.pet-avatar-edit-btn {
+  position: absolute; bottom: -6px; right: -6px; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--line); cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.pet-avatar-edit-btn:hover { border-color: var(--moss); }
+
+.photo-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; margin-bottom: 4px;
+}
+.photo-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--mist); }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-thumb .photo-delete-btn {
+  position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); color: #fff; border: none; cursor: pointer; font-size: 13px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.photo-thumb .photo-delete-btn:hover { background: rgba(0,0,0,0.8); }
+
+.photo-pet-section { margin-bottom: 26px; }
+.photo-pet-heading { font-size: 15px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 .profile-name { font-family: "Fraunces", Georgia, serif; font-size: 28px; font-weight: 600; margin: 0 0 4px; }
 .profile-species { color: var(--ink-soft); font-size: 14.5px; }
 .profile-id {
