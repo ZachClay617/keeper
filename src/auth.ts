@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient'
 import { onSignedIn, onSignedOut } from './pets'
 import { setAccountTimezone } from './timezone'
+import { applyPalette } from './palette'
 import { $, esc } from './dom'
 
 function getInitials(text: string): string {
@@ -42,6 +43,7 @@ async function showApp() {
 function showAuth() {
   $('mainApp').style.display = 'none'
   $('authView').style.display = 'flex'
+  applyPalette(null)
   onSignedOut()
 }
 
@@ -54,11 +56,12 @@ async function renderAccountInfo() {
   let name = ''
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, timezone')
+    .select('name, timezone, color_palette')
     .eq('id', user.id)
     .single()
   if (profile?.name) name = profile.name
   setAccountTimezone(profile?.timezone)
+  applyPalette(profile?.color_palette)
 
   const accountBtn = $('accountBtn')
   const accountInfo = $('accountInfo')

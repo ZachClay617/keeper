@@ -1,16 +1,51 @@
 import { supabase } from './supabaseClient'
 import { timezoneOptions, setAccountTimezone, getAccountTimezone } from './timezone'
+import { paletteOptions, applyPalette } from './palette'
 import { refreshCurrentPet } from './pets'
 import { renderRemindersManager } from './reminders'
 import { showOnly } from './views'
 import { $, esc } from './dom'
 
 let wired = false
+let currentPalette = 'sage'
 
 function populateTimezoneSelect() {
   const select = $('set-timezone') as HTMLSelectElement
   select.innerHTML = timezoneOptions.map((tz) => `<option value="${tz.value}">${esc(tz.label)}</option>`).join('')
   select.value = getAccountTimezone()
+}
+
+function renderPaletteOptions() {
+  const wrap = $('paletteOptions')
+  wrap.innerHTML = paletteOptions
+    .map(
+      (p) => `
+      <button type="button" class="palette-swatch${p.value === currentPalette ? ' active' : ''}" data-palette="${p.value}">
+        <span class="palette-dots">${p.swatches.map((c) => `<span class="palette-dot" style="background:${c};"></span>`).join('')}</span>
+        <span class="label">${esc(p.label)}</span>
+      </button>
+    `
+    )
+    .join('')
+  wrap.querySelectorAll<HTMLButtonElement>('.palette-swatch').forEach((btn) => {
+    btn.addEventListener('click', () => savePalette(btn.dataset.palette!))
+  })
+}
+
+async function savePalette(value: string) {
+  if (value === currentPalette) return
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+  const { error } = await supabase.from('profiles').update({ color_palette: value }).eq('id', user.id)
+  if (error) {
+    console.error(error)
+    return
+  }
+  currentPalette = value
+  applyPalette(value)
+  renderPaletteOptions()
 }
 
 async function renderSettings() {
@@ -19,7 +54,7 @@ async function renderSettings() {
   } = await supabase.auth.getUser()
   if (!user) return
 
-  const { data: profile } = await supabase.from('profiles').select('name, timezone').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('name, timezone, color_palette').eq('id', user.id).single()
 
   ;($('set-name') as HTMLInputElement).value = profile?.name || ''
   ;($('set-email') as HTMLInputElement).value = user.email || ''
@@ -27,6 +62,8 @@ async function renderSettings() {
   ;($('set-password2') as HTMLInputElement).value = ''
   $('passwordNote').textContent = ''
   populateTimezoneSelect()
+  currentPalette = profile?.color_palette || 'sage'
+  renderPaletteOptions()
   clearNote('profileNote')
   await renderRemindersManager()
 }
