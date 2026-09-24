@@ -176,9 +176,9 @@ function renderMiniChart(wrapId: string, entries: ReptileCondition[], valueOf: (
   }
 
   const W = 600
-  const H = 120
-  const padX = 12
-  const padTop = 14
+  const H = 140
+  const padX = 16
+  const padTop = 26
   const padBottom = 20
   const values = points_.map((p) => p.value)
   const minV = Math.min(...values)
@@ -199,12 +199,19 @@ function renderMiniChart(wrapId: string, entries: ReptileCondition[], valueOf: (
   const dots = coords
     .map((c, i) => {
       const p = points_[i]
-      return `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="3.5" fill="var(--moss)" stroke="var(--surface)" stroke-width="2"><title>${esc(formatDateKey(p.entry.date))} — ${esc(formatValue(p.value))}</title></circle>`
+      const labelY = Math.max(10, c.y - 10)
+      return `
+        <circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="3.5" fill="var(--moss)" stroke="var(--surface)" stroke-width="2"><title>${esc(formatDateKey(p.entry.date))} — ${esc(formatValue(p.value))}</title></circle>
+        <text x="${c.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" style="font-size:10px; font-weight:600; fill:var(--ink);">${esc(formatValue(p.value))}</text>
+      `
     })
     .join('')
 
   const firstLabel = `<text x="${coords[0].x}" y="${H - 5}" text-anchor="start" style="font-size:10px; fill:var(--ink-soft);">${esc(formatDateKey(points_[0].entry.date))}</text>`
   const lastLabel = `<text x="${coords[coords.length - 1].x}" y="${H - 5}" text-anchor="end" style="font-size:10px; fill:var(--ink-soft);">${esc(formatDateKey(points_[points_.length - 1].entry.date))}</text>`
+  // Skip an axis label when the first point already sits at that value — its own value label would overlap.
+  const maxLabel = maxV !== minV && points_[0].value !== maxV ? `<text x="2" y="${padTop + 3}" text-anchor="start" style="font-size:9px; fill:var(--ink-soft);">${esc(formatValue(maxV))}</text>` : ''
+  const minLabel = maxV !== minV && points_[0].value !== minV ? `<text x="2" y="${H - padBottom - 2}" text-anchor="start" style="font-size:9px; fill:var(--ink-soft);">${esc(formatValue(minV))}</text>` : ''
 
   wrap.innerHTML = `
     <svg viewBox="0 0 ${W} ${H}" class="habitat-chart" preserveAspectRatio="none">
@@ -213,6 +220,8 @@ function renderMiniChart(wrapId: string, entries: ReptileCondition[], valueOf: (
       ${dots}
       ${firstLabel}
       ${lastLabel}
+      ${maxLabel}
+      ${minLabel}
     </svg>
   `
 }
