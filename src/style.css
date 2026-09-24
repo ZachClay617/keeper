@@ -472,6 +472,10 @@ tr.got .shop-check::after { opacity: 1; }
 .budget-donut-legend .legend-row { display: flex; align-items: center; gap: 8px; }
 .budget-donut-legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
+.guide-disclaimer {
+  font-size: 12.5px; color: var(--ink-soft); background: color-mix(in srgb, var(--clay) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--clay) 25%, var(--line)); border-radius: 10px; padding: 10px 13px; margin-bottom: 14px;
+}
 .guide-tabs { display: flex; gap: 6px; overflow-x: auto; background: var(--mist); border-radius: 12px; padding: 5px; margin-bottom: 14px; }
 .guide-tab {
   flex: 1; white-space: nowrap; text-align: center; padding: 9px 12px; border-radius: 9px; border: none; background: none;
@@ -517,7 +521,7 @@ tr.got .shop-check::after { opacity: 1; }
 .photo-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; margin-bottom: 4px;
 }
-.photo-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--mist); }
+.photo-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--mist); cursor: pointer; }
 .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .photo-thumb .photo-delete-btn {
   position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
@@ -525,6 +529,18 @@ tr.got .shop-check::after { opacity: 1; }
   display: flex; align-items: center; justify-content: center; padding: 0;
 }
 .photo-thumb .photo-delete-btn:hover { background: rgba(0,0,0,0.8); }
+
+.lightbox-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none;
+  align-items: center; justify-content: center; z-index: 100; padding: 24px;
+}
+.lightbox-overlay.open { display: flex; }
+.lightbox-img { max-width: 100%; max-height: 90vh; border-radius: 8px; object-fit: contain; }
+.lightbox-close {
+  position: fixed; top: 18px; right: 22px; background: rgba(255,255,255,0.12); color: #fff; border: none;
+  width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; line-height: 1;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.22); }
 
 .photo-pet-section { margin-bottom: 26px; }
 .photo-pet-heading { font-size: 15px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { showOnly } from './views'
+import { openLightbox } from './lightbox'
 import { $, esc } from './dom'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
@@ -63,7 +64,7 @@ async function renderPhotosPage() {
         <div class="photo-pet-section">
           <div class="photo-pet-heading">${esc(typeEmoji[pet.type] || '🐾')} ${esc(pet.name)}</div>
           <div class="photo-grid">
-            ${petPhotos.map((p) => `<div class="photo-thumb"><img src="${esc(p.url)}" alt=""></div>`).join('')}
+            ${petPhotos.map((p) => `<div class="photo-thumb" data-url="${esc(p.url)}"><img src="${esc(p.url)}" alt=""></div>`).join('')}
           </div>
         </div>
       `
@@ -71,6 +72,9 @@ async function renderPhotosPage() {
     .join('')
 
   wrap.innerHTML = sections || '<div class="empty-state">No photos yet — add some from a pet’s Profile tab.</div>'
+  wrap.querySelectorAll<HTMLElement>('.photo-thumb').forEach((thumb) => {
+    thumb.addEventListener('click', () => openLightbox(thumb.dataset.url!))
+  })
 }
 
 function wireStaticControls() {

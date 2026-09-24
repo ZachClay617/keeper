@@ -6,6 +6,7 @@ import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } fr
 import { showOnly } from './views'
 import { $, esc } from './dom'
 import { uploadPhoto, deletePhoto } from './imageUpload'
+import { openLightbox } from './lightbox'
 import { formatAge } from './petAge'
 import { todayKey } from './timezone'
 
@@ -272,7 +273,7 @@ function renderGallery() {
   grid.innerHTML = galleryPhotos
     .map(
       (p) => `
-      <div class="photo-thumb" data-id="${p.id}">
+      <div class="photo-thumb" data-id="${p.id}" data-url="${esc(p.url)}">
         <img src="${esc(p.url)}" alt="">
         <button class="photo-delete-btn" aria-label="Delete photo">×</button>
       </div>
@@ -280,7 +281,11 @@ function renderGallery() {
     )
     .join('')
   grid.querySelectorAll<HTMLElement>('.photo-thumb').forEach((thumb) => {
-    thumb.querySelector('.photo-delete-btn')?.addEventListener('click', () => deleteGalleryPhoto(thumb.dataset.id!))
+    thumb.querySelector('.photo-delete-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      deleteGalleryPhoto(thumb.dataset.id!)
+    })
+    thumb.addEventListener('click', () => openLightbox(thumb.dataset.url!))
   })
 }
 
