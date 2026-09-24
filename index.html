@@ -104,6 +104,7 @@
           <button class="manage-link" id="settingsBtn">Settings</button>
           <button class="manage-link" id="careGuidesBtn">Care Guides</button>
           <button class="manage-link" id="photosBtn">Photos</button>
+          <button class="manage-link" id="exportDataBtn">Download My Data</button>
           <button class="manage-link delete-link" id="logoutBtn">Log out</button>
         </div>
       </div>
@@ -189,6 +190,22 @@
       <div class="progress-track"><div class="progress-fill" id="progressBar"></div></div>
       <div id="dailyList"></div>
       <button class="add-row-btn" id="addItemBtn">+ Add care item</button>
+    </div>
+
+    <div class="card habitat-card" id="habitatCard" style="display:none;">
+      <div class="section-label">Habitat conditions</div>
+      <div class="habitat-row">
+        <div class="field">
+          <label for="habitat-humidity">Humidity (%)</label>
+          <input type="number" step="1" min="0" max="100" id="habitat-humidity" placeholder="e.g. 60">
+        </div>
+        <div class="field">
+          <label for="habitat-temp">Temperature (<span id="habitatTempUnit">°F</span>)</label>
+          <input type="number" step="0.1" id="habitat-temp" placeholder="e.g. 85">
+        </div>
+      </div>
+      <button class="btn-secondary" id="habitatSaveBtn">Save reading</button>
+      <div class="habitat-updated" id="habitatUpdated"></div>
     </div>
 
     <div class="card plan-tomorrow-card" id="planTomorrowCard">
@@ -308,6 +325,15 @@
     <div class="card">
       <div class="section-label">Currency</div>
       <div class="field"><label for="set-currency">Used for every price shown in the app</label><select id="set-currency"></select></div>
+    </div>
+    <div class="card">
+      <div class="section-label">Temperature unit</div>
+      <div class="field"><label for="set-tempunit">Used for reptile habitat readings</label>
+        <select id="set-tempunit">
+          <option value="F">Fahrenheit (°F)</option>
+          <option value="C">Celsius (°C)</option>
+        </select>
+      </div>
     </div>
     <div class="card">
       <div class="section-label">Reminders</div>

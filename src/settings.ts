@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import { timezoneOptions, setAccountTimezone, getAccountTimezone } from './timezone'
 import { paletteOptions, applyPalette } from './palette'
 import { currencyOptions, setAccountCurrency, getAccountCurrency } from './currency'
+import { setAccountTempUnit, getAccountTempUnit } from './tempUnit'
 import { renderAccountAvatar } from './auth'
 import { uploadPhoto } from './imageUpload'
 import { refreshCurrentPet } from './pets'
@@ -79,6 +80,27 @@ async function saveCurrency() {
   await refreshBudgetCurrency()
 }
 
+function populateTempUnitSelect() {
+  const select = $('set-tempunit') as HTMLSelectElement
+  select.value = getAccountTempUnit()
+}
+
+async function saveTempUnit() {
+  const select = $('set-tempunit') as HTMLSelectElement
+  const value = select.value
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+  const { error } = await supabase.from('profiles').update({ temp_unit: value }).eq('id', user.id)
+  if (error) {
+    console.error(error)
+    return
+  }
+  setAccountTempUnit(value)
+  refreshCurrentPet()
+}
+
 function renderPaletteOptions() {
   const wrap = $('paletteOptions')
   wrap.innerHTML = paletteOptions
@@ -130,6 +152,7 @@ async function renderSettings() {
   $('passwordNote').textContent = ''
   populateTimezoneSelect()
   populateCurrencySelect()
+  populateTempUnitSelect()
   currentPalette = profile?.color_palette || 'sage'
   renderPaletteOptions()
   clearNote('profileNote')
@@ -238,6 +261,7 @@ function wireStaticControls() {
   $('savePasswordBtn').addEventListener('click', savePassword)
   $('set-timezone').addEventListener('change', saveTimezone)
   $('set-currency').addEventListener('change', saveCurrency)
+  $('set-tempunit').addEventListener('change', saveTempUnit)
   $('settingsBackBtn').addEventListener('click', hideSettings)
   $('avatarUploadBtn').addEventListener('click', () => $('avatarFileInput').click())
   $('avatarFileInput').addEventListener('change', (e) => {

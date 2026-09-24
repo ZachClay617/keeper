@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { todayKey } from './timezone'
+import { fromF, toF, tempUnitLabel } from './tempUnit'
 import { $, esc } from './dom'
 
 type Category = 'Feeding' | 'Exercise' | 'Medication' | 'Hygiene' | 'Environment' | 'Health'
@@ -67,6 +68,14 @@ interface PlannedTask {
   created_at: string
 }
 
+interface ReptileCondition {
+  id: string
+  pet_id: string
+  date: string
+  humidity: number | null
+  temp_f: number | null
+}
+
 let currentPetId: string | null = null
 let currentPet: PetRef | null = null
 let items: DailyCareItem[] = []
@@ -80,6 +89,7 @@ let plannedForViewingDate: PlannedTask[] = []
 let planTomorrowOpen = false
 /** `${petId}:${dateKey}` combos that have already gotten their "all done" thank-you toast. */
 const thanksShown = new Set<string>()
+let todayCondition: ReptileCondition | null = null
 
 async function fetchItems(petId: string) {
   const { data, error } = await supabase
@@ -135,6 +145,54 @@ async function fetchPlannedTasks(petId: string, date: string): Promise<PlannedTa
     return []
   }
   return (data as PlannedTask[]) || []
+}
+
+async function fetchTodayCondition(petId: string): Promise<ReptileCondition | null> {
+  const { data, error } = await supabase
+    .from('reptile_conditions')
+    .select('*')
+    .eq('pet_id', petId)
+    .eq('date', todayKey())
+    .maybeSingle()
+  if (error) {
+    console.error('Failed to load habitat conditions', error)
+    return null
+  }
+  return (data as ReptileCondition) || null
+}
+
+function renderHabitatCard() {
+  const card = $('habitatCard')
+  if (!currentPet || currentPet.type !== 'reptile' || viewingDate) {
+    card.style.display = 'none'
+    return
+  }
+  card.style.display = ''
+  ;($('habitatTempUnit') as HTMLElement).textContent = tempUnitLabel()
+  const humidityInput = $('habitat-humidity') as HTMLInputElement
+  const tempInput = $('habitat-temp') as HTMLInputElement
+  humidityInput.value = todayCondition?.humidity != null ? String(todayCondition.humidity) : ''
+  tempInput.value = todayCondition?.temp_f != null ? String(Math.round(fromF(todayCondition.temp_f) * 10) / 10) : ''
+  $('habitatUpdated').textContent = todayCondition ? `Saved for today — ${formatDateKey(todayKey())}` : 'No reading logged yet today.'
+}
+
+async function saveHabitatCondition() {
+  if (!currentPetId) return
+  const humidityInput = $('habitat-humidity') as HTMLInputElement
+  const tempInput = $('habitat-temp') as HTMLInputElement
+  const humidity = humidityInput.value ? Number(humidityInput.value) : null
+  const temp_f = tempInput.value ? toF(Number(tempInput.value)) : null
+  const { data, error } = await supabase
+    .from('reptile_conditions')
+    .upsert({ pet_id: currentPetId, date: todayKey(), humidity, temp_f }, { onConflict: 'pet_id,date' })
+    .select()
+    .single()
+  if (error) {
+    console.error(error)
+    return
+  }
+  todayCondition = data as ReptileCondition
+  renderHabitatCard()
 }
 
 function renderPlanTomorrow() {
@@ -246,11 +304,13 @@ async function renderDaily() {
     $('progressText').textContent = ''
     ;($('progressBar') as HTMLElement).style.width = '0%'
     renderPlanTomorrow()
+    renderHabitatCard()
     return
   }
 
   renderDayPicker()
   renderPlanTomorrow()
+  renderHabitatCard()
 
   if (viewingDate) {
     heading.textContent = formatDateKey(viewingDate)
@@ -524,6 +584,8 @@ function wireStaticControls() {
     }
   })
 
+  $('habitatSaveBtn').addEventListener('click', saveHabitatCondition)
+
   $('planTomorrowToggle').addEventListener('click', () => {
     planTomorrowOpen = !planTomorrowOpen
     renderPlanTomorrow()
@@ -601,6 +663,7 @@ export async function onPetSelected(pet: PetRef | null) {
   plannedForTomorrow = []
   plannedForToday = []
   planTomorrowOpen = false
+  todayCondition = null
   if (petId) {
     await fetchItems(petId)
     if (token !== requestToken) return // a newer pet was selected while this was in flight
@@ -612,6 +675,10 @@ export async function onPetSelected(pet: PetRef | null) {
     if (token !== requestToken) return
     plannedForToday = await fetchPlannedTasks(petId, todayKey())
     if (token !== requestToken) return
+    if (pet?.type === 'reptile') {
+      todayCondition = await fetchTodayCondition(petId)
+      if (token !== requestToken) return
+    }
   }
   await renderDaily()
 }
@@ -627,4 +694,5 @@ export function onSignedOut() {
   plannedForToday = []
   planTomorrowOpen = false
   thanksShown.clear()
+  todayCondition = null
 }

@@ -79,7 +79,7 @@ const speciesOptions: Partial<Record<PetType, string[]>> = {
     'Gargoyle gecko', 'Green iguana', 'Chinese water dragon', 'Savannah monitor', 'Garter snake', 'Other',
   ],
   fish: [
-    'Angelfish', 'Betta', 'Bristlenose pleco', 'Butterflyfish', 'Cherry barb', 'Clown loach',
+    'Angelfish', 'Axolotl', 'Betta', 'Bristlenose pleco', 'Butterflyfish', 'Cherry barb', 'Clown loach',
     'Clownfish', 'Cory catfish', 'Danio', 'Discus', 'Dwarf gourami', 'Fancy goldfish',
     'Flowerhorn cichlid', 'Gar', 'Glass catfish', 'Goby', 'Goldfish', 'Guppy', 'Killifish', 'Koi',
     'Kuhli loach', 'Lionfish', 'Mandarinfish', 'Molly', 'Neon tetra', 'Oscar', 'Pearl gourami',

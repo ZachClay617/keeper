@@ -4,6 +4,7 @@ import { showSettings } from './settings'
 import { showBudget } from './budget'
 import { showCareGuides } from './careGuides'
 import { showPhotos } from './photosPage'
+import { downloadPetData } from './exportData'
 import { setActiveTab } from './pets'
 import { showOnly } from './views'
 import { startClock } from './clock'
@@ -29,6 +30,11 @@ document.getElementById('careGuidesBtn')?.addEventListener('click', () => {
 document.getElementById('photosBtn')?.addEventListener('click', () => {
   document.getElementById('accountPanel')?.classList.remove('open')
   showPhotos()
+})
+
+document.getElementById('exportDataBtn')?.addEventListener('click', () => {
+  document.getElementById('accountPanel')?.classList.remove('open')
+  downloadPetData()
 })
 
 document.getElementById('homeBtn')?.addEventListener('click', () => {
