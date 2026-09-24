@@ -256,7 +256,9 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
 .habitat-card { border: 1.5px solid var(--moss); background: color-mix(in srgb, var(--moss) 6%, var(--surface)); }
 .habitat-row { display: flex; gap: 12px; }
 .habitat-row .field { flex: 1; }
-.habitat-updated { font-size: 12px; color: var(--ink-soft); margin-top: 8px; }
+.habitat-chart-block { margin-top: 16px; }
+.habitat-chart-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
+.habitat-chart { width: 100%; height: 120px; display: block; }
 
 .plan-tomorrow-card {
   border: 1.5px dashed var(--honey);

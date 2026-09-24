@@ -204,8 +204,16 @@
           <input type="number" step="0.1" id="habitat-temp" placeholder="e.g. 85">
         </div>
       </div>
-      <button class="btn-secondary" id="habitatSaveBtn">Save reading</button>
-      <div class="habitat-updated" id="habitatUpdated"></div>
+      <button class="btn-secondary" id="habitatAddBtn">Add</button>
+      <div class="habitat-chart-block">
+        <div class="habitat-chart-label">Humidity (%)</div>
+        <div id="habitatHumidityChartWrap"></div>
+      </div>
+      <div class="habitat-chart-block">
+        <div class="habitat-chart-label">Temperature (<span id="habitatTempUnit2">°F</span>)</div>
+        <div id="habitatTempChartWrap"></div>
+      </div>
+      <div id="habitatList"></div>
     </div>
 
     <div class="card plan-tomorrow-card" id="planTomorrowCard">

@@ -75,6 +75,7 @@ interface ReptileCondition {
   date: string
   humidity: number | null
   temp_f: number | null
+  created_at: string
 }
 
 let currentPetId: string | null = null
@@ -90,7 +91,7 @@ let plannedForViewingDate: PlannedTask[] = []
 let planTomorrowOpen = false
 /** `${petId}:${dateKey}` combos that have already gotten their "all done" thank-you toast. */
 const thanksShown = new Set<string>()
-let todayCondition: ReptileCondition | null = null
+let habitatEntries: ReptileCondition[] = []
 
 async function fetchItems(petId: string) {
   const { data, error } = await supabase
@@ -148,18 +149,105 @@ async function fetchPlannedTasks(petId: string, date: string): Promise<PlannedTa
   return (data as PlannedTask[]) || []
 }
 
-async function fetchTodayCondition(petId: string): Promise<ReptileCondition | null> {
+async function fetchHabitatEntries(petId: string): Promise<ReptileCondition[]> {
   const { data, error } = await supabase
     .from('reptile_conditions')
     .select('*')
     .eq('pet_id', petId)
-    .eq('date', todayKey())
-    .maybeSingle()
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
   if (error) {
     console.error('Failed to load habitat conditions', error)
-    return null
+    return []
   }
-  return (data as ReptileCondition) || null
+  return (data as ReptileCondition[]) || []
+}
+
+/** Renders a small line chart into `wrapId` for whichever entries have a non-null value from `valueOf`. */
+function renderMiniChart(wrapId: string, entries: ReptileCondition[], valueOf: (e: ReptileCondition) => number | null, formatValue: (v: number) => string) {
+  const wrap = $(wrapId)
+  const points_ = [...entries]
+    .reverse() // oldest first, for a left-to-right line
+    .map((e) => ({ entry: e, value: valueOf(e) }))
+    .filter((p): p is { entry: ReptileCondition; value: number } => p.value != null)
+  if (points_.length < 2) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:4px 0;">Not enough readings yet.</div>'
+    return
+  }
+
+  const W = 600
+  const H = 120
+  const padX = 12
+  const padTop = 14
+  const padBottom = 20
+  const values = points_.map((p) => p.value)
+  const minV = Math.min(...values)
+  const maxV = Math.max(...values)
+  const range = maxV - minV || 1
+  const chartH = H - padTop - padBottom
+  const stepX = (W - padX * 2) / (points_.length - 1)
+
+  const coords = points_.map((p, i) => {
+    const x = padX + stepX * i
+    const y = padTop + chartH - ((p.value - minV) / range) * chartH
+    return { x, y }
+  })
+
+  const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L${coords[coords.length - 1].x.toFixed(1)},${H - padBottom} L${coords[0].x.toFixed(1)},${H - padBottom} Z`
+
+  const dots = coords
+    .map((c, i) => {
+      const p = points_[i]
+      return `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="3.5" fill="var(--moss)" stroke="var(--surface)" stroke-width="2"><title>${esc(formatDateKey(p.entry.date))} — ${esc(formatValue(p.value))}</title></circle>`
+    })
+    .join('')
+
+  const firstLabel = `<text x="${coords[0].x}" y="${H - 5}" text-anchor="start" style="font-size:10px; fill:var(--ink-soft);">${esc(formatDateKey(points_[0].entry.date))}</text>`
+  const lastLabel = `<text x="${coords[coords.length - 1].x}" y="${H - 5}" text-anchor="end" style="font-size:10px; fill:var(--ink-soft);">${esc(formatDateKey(points_[points_.length - 1].entry.date))}</text>`
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" class="habitat-chart" preserveAspectRatio="none">
+      <path d="${areaPath}" fill="color-mix(in srgb, var(--moss) 14%, transparent)" stroke="none"></path>
+      <path d="${linePath}" fill="none" stroke="var(--moss)" stroke-width="2.5"></path>
+      ${dots}
+      ${firstLabel}
+      ${lastLabel}
+    </svg>
+  `
+}
+
+function formatHabitatEntry(e: ReptileCondition): string {
+  const parts: string[] = []
+  if (e.humidity != null) parts.push(`${e.humidity}% humidity`)
+  if (e.temp_f != null) parts.push(`${Math.round(fromF(e.temp_f) * 10) / 10}${tempUnitLabel()}`)
+  return parts.join(', ') || 'No values'
+}
+
+function renderHabitatList() {
+  const wrap = $('habitatList')
+  if (!habitatEntries.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:6px 0;">No readings logged yet.</div>'
+    return
+  }
+  wrap.innerHTML = habitatEntries
+    .map(
+      (e) => `
+      <div class="reminder-row" data-id="${e.id}">
+        <span class="care-label">${esc(formatDateKey(e.date))} — ${esc(formatHabitatEntry(e))}</span>
+        <button class="delete-btn habitat-delete" data-id="${e.id}" aria-label="Remove reading">×</button>
+      </div>
+    `
+    )
+    .join('')
+  wrap.querySelectorAll<HTMLButtonElement>('.habitat-delete').forEach((btn) => {
+    btn.addEventListener('click', () => deleteHabitatEntry(btn.dataset.id!))
+  })
+}
+
+function renderHabitatCharts() {
+  renderMiniChart('habitatHumidityChartWrap', habitatEntries, (e) => e.humidity, (v) => `${v}%`)
+  renderMiniChart('habitatTempChartWrap', habitatEntries, (e) => (e.temp_f != null ? fromF(e.temp_f) : null), (v) => `${Math.round(v * 10) / 10}${tempUnitLabel()}`)
 }
 
 function renderHabitatCard() {
@@ -170,11 +258,20 @@ function renderHabitatCard() {
   }
   card.style.display = ''
   ;($('habitatTempUnit') as HTMLElement).textContent = tempUnitLabel()
-  const humidityInput = $('habitat-humidity') as HTMLInputElement
-  const tempInput = $('habitat-temp') as HTMLInputElement
-  humidityInput.value = todayCondition?.humidity != null ? String(todayCondition.humidity) : ''
-  tempInput.value = todayCondition?.temp_f != null ? String(Math.round(fromF(todayCondition.temp_f) * 10) / 10) : ''
-  $('habitatUpdated').textContent = todayCondition ? `Saved for today — ${formatDateKey(todayKey())}` : 'No reading logged yet today.'
+  ;($('habitatTempUnit2') as HTMLElement).textContent = tempUnitLabel()
+  renderHabitatCharts()
+  renderHabitatList()
+}
+
+async function deleteHabitatEntry(id: string) {
+  const { error } = await supabase.from('reptile_conditions').delete().eq('id', id)
+  if (error) {
+    console.error(error)
+    return
+  }
+  habitatEntries = habitatEntries.filter((e) => e.id !== id)
+  renderHabitatCharts()
+  renderHabitatList()
 }
 
 async function saveHabitatCondition() {
@@ -183,17 +280,21 @@ async function saveHabitatCondition() {
   const tempInput = $('habitat-temp') as HTMLInputElement
   const humidity = humidityInput.value ? Number(humidityInput.value) : null
   const temp_f = tempInput.value ? toF(Number(tempInput.value)) : null
+  if (humidity == null && temp_f == null) return
   const { data, error } = await supabase
     .from('reptile_conditions')
-    .upsert({ pet_id: currentPetId, date: todayKey(), humidity, temp_f }, { onConflict: 'pet_id,date' })
+    .insert({ pet_id: currentPetId, date: todayKey(), humidity, temp_f })
     .select()
     .single()
   if (error) {
     console.error(error)
     return
   }
-  todayCondition = data as ReptileCondition
-  renderHabitatCard()
+  habitatEntries.unshift(data as ReptileCondition)
+  humidityInput.value = ''
+  tempInput.value = ''
+  renderHabitatCharts()
+  renderHabitatList()
 }
 
 function renderPlanTomorrow() {
@@ -585,7 +686,7 @@ function wireStaticControls() {
     }
   })
 
-  $('habitatSaveBtn').addEventListener('click', saveHabitatCondition)
+  $('habitatAddBtn').addEventListener('click', saveHabitatCondition)
 
   $('planTomorrowToggle').addEventListener('click', () => {
     planTomorrowOpen = !planTomorrowOpen
@@ -738,7 +839,7 @@ export async function onPetSelected(pet: PetRef | null) {
   plannedForTomorrow = []
   plannedForToday = []
   planTomorrowOpen = false
-  todayCondition = null
+  habitatEntries = []
   if (petId) {
     await fetchItems(petId)
     if (token !== requestToken) return // a newer pet was selected while this was in flight
@@ -751,7 +852,7 @@ export async function onPetSelected(pet: PetRef | null) {
     plannedForToday = await fetchPlannedTasks(petId, todayKey())
     if (token !== requestToken) return
     if (pet?.type === 'reptile') {
-      todayCondition = await fetchTodayCondition(petId)
+      habitatEntries = await fetchHabitatEntries(petId)
       if (token !== requestToken) return
     }
   }
@@ -769,5 +870,5 @@ export function onSignedOut() {
   plannedForToday = []
   planTomorrowOpen = false
   thanksShown.clear()
-  todayCondition = null
+  habitatEntries = []
 }
