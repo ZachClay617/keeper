@@ -345,6 +345,12 @@ header.app-header { display: flex; align-items: center; justify-content: space-b
 }
 .thanks-toast .alarm-toast-icon { font-size: 20px; }
 
+.checkin-toast {
+  border-color: var(--honey);
+  background: color-mix(in srgb, var(--honey) 10%, var(--surface));
+}
+.checkin-toast .alarm-toast-icon { font-size: 20px; }
+
 .shopping-table-wrap { overflow-x: auto; }
 .shopping-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .shopping-table th {

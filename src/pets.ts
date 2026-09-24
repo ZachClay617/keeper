@@ -3,6 +3,7 @@ import { onPetSelected as notifyDailyPetSelected, onSignedOut as notifyDailySign
 import { onPetSelected as notifyLogPetSelected, onSignedOut as notifyLogSignedOut, initUpcomingAlarms, stopUpcomingAlarms } from './careLog'
 import { onPetSelected as notifyShoppingPetSelected, onSignedOut as notifyShoppingSignedOut } from './shopping'
 import { initReminders, refreshReminders, onSignedOut as remindersSignedOut } from './reminders'
+import { initPetCheckins, stopPetCheckins } from './petCheckins'
 import { showOnly } from './views'
 import { $, esc } from './dom'
 import { uploadPhoto, deletePhoto } from './imageUpload'
@@ -830,6 +831,7 @@ export async function onSignedIn() {
   showOnly('appMain')
   await initReminders()
   initUpcomingAlarms()
+  initPetCheckins()
 }
 
 export function onSignedOut() {
@@ -844,4 +846,5 @@ export function onSignedOut() {
   notifyShoppingSignedOut()
   remindersSignedOut()
   stopUpcomingAlarms()
+  stopPetCheckins()
 }
