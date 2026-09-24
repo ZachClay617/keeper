@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { todayKey, nowTimeKey } from './timezone'
+import { logPetMessage } from './reminders'
 import { $, esc } from './dom'
 
 type PetType = 'dog' | 'cat' | 'small_animal' | 'bird' | 'reptile' | 'fish' | 'other'
@@ -115,7 +116,8 @@ function showCheckinToast(pet: PetRef) {
   `
   toast.querySelector('.alarm-toast-dismiss')!.addEventListener('click', () => toast.remove())
   wrap.appendChild(toast)
-  setTimeout(() => toast.remove(), 15000)
+  setTimeout(() => toast.remove(), 10000)
+  logPetMessage(`${pet.name}: ${message}`)
 }
 
 async function checkDueCheckins() {

@@ -18,9 +18,16 @@ interface PetOption {
   status: 'active' | 'memorial'
 }
 
+interface RecentMessage {
+  id: string
+  text: string
+  time: string
+}
+
 let wired = false
 let reminders: Reminder[] = []
 let allPetOptions: PetOption[] = []
+let recentMessages: RecentMessage[] = []
 
 async function fetchReminders() {
   const { data, error } = await supabase
@@ -57,22 +64,39 @@ function visibleReminders(): Reminder[] {
   return reminders.filter((r) => !r.pets || r.pets.status !== 'memorial')
 }
 
+/** Logs a pet's toast message (thank-you or check-in) into the bell panel once its toast disappears. */
+export function logPetMessage(text: string) {
+  recentMessages.unshift({ id: `${Date.now()}-${Math.random()}`, text, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) })
+  if (recentMessages.length > 20) recentMessages.length = 20
+  renderBell()
+}
+
 function renderBell() {
   const list = $('notifList')
   const badge = $('bellBadge')
-  const items = visibleReminders()
-  if (!items.length) {
+  const reminderItems = visibleReminders()
+  const total = reminderItems.length + recentMessages.length
+  if (!total) {
     list.innerHTML = '<div class="notif-empty">No reminders right now.</div>'
     badge.style.display = 'none'
   } else {
-    list.innerHTML = items
-      .map((r) => {
-        const label = r.pets ? `${esc(r.pets.name)}: ${esc(r.text)}` : esc(r.text)
-        return `<div class="notif-item">${label}</div>`
-      })
-      .join('')
+    let html = ''
+    if (recentMessages.length) {
+      html += '<div class="notif-section-label">Recent messages</div>'
+      html += recentMessages.map((m) => `<div class="notif-item notif-item-message"><span class="notif-time">${esc(m.time)}</span> ${esc(m.text)}</div>`).join('')
+    }
+    if (reminderItems.length) {
+      if (recentMessages.length) html += '<div class="notif-section-label">Reminders</div>'
+      html += reminderItems
+        .map((r) => {
+          const label = r.pets ? `${esc(r.pets.name)}: ${esc(r.text)}` : esc(r.text)
+          return `<div class="notif-item">${label}</div>`
+        })
+        .join('')
+    }
+    list.innerHTML = html
     badge.style.display = 'flex'
-    badge.textContent = String(items.length)
+    badge.textContent = String(total)
   }
 }
 
@@ -215,6 +239,7 @@ export async function renderRemindersManager() {
 export function onSignedOut() {
   reminders = []
   allPetOptions = []
+  recentMessages = []
   const badge = document.getElementById('bellBadge')
   if (badge) badge.style.display = 'none'
   const list = document.getElementById('notifList')

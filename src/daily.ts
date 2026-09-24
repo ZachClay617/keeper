@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient'
 import { todayKey } from './timezone'
 import { fromF, toF, tempUnitLabel } from './tempUnit'
+import { logPetMessage } from './reminders'
 import { $, esc } from './dom'
 
 type Category = 'Feeding' | 'Exercise' | 'Medication' | 'Hygiene' | 'Environment' | 'Health'
@@ -701,7 +702,8 @@ function showThanksToast(pet: PetRef) {
   `
   toast.querySelector('.alarm-toast-dismiss')!.addEventListener('click', () => toast.remove())
   wrap.appendChild(toast)
-  setTimeout(() => toast.remove(), 15000)
+  setTimeout(() => toast.remove(), 10000)
+  logPetMessage(`${pet.name}: ${message}`)
 }
 
 /** Call right after a check (not uncheck) toggle — fires the thank-you toast once per pet per day, the moment the last today's-task is checked off. */
