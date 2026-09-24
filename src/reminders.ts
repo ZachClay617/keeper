@@ -18,16 +18,16 @@ interface PetOption {
   status: 'active' | 'memorial'
 }
 
-interface RecentMessage {
+interface PetMessageRow {
   id: string
-  text: string
-  time: string
+  message: string
+  created_at: string
 }
 
 let wired = false
 let reminders: Reminder[] = []
 let allPetOptions: PetOption[] = []
-let recentMessages: RecentMessage[] = []
+let recentMessages: PetMessageRow[] = []
 
 async function fetchReminders() {
   const { data, error } = await supabase
@@ -64,11 +64,42 @@ function visibleReminders(): Reminder[] {
   return reminders.filter((r) => !r.pets || r.pets.status !== 'memorial')
 }
 
-/** Logs a pet's toast message (thank-you or check-in) into the bell panel once its toast disappears. */
-export function logPetMessage(text: string) {
-  recentMessages.unshift({ id: `${Date.now()}-${Math.random()}`, text, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) })
-  if (recentMessages.length > 20) recentMessages.length = 20
+async function fetchRecentMessages() {
+  const { data, error } = await supabase
+    .from('pet_messages')
+    .select('id, message, created_at')
+    .eq('dismissed', false)
+    .order('created_at', { ascending: false })
+    .limit(30)
+  if (error) {
+    console.error('Failed to load recent pet messages', error)
+    recentMessages = []
+    return
+  }
+  recentMessages = (data as PetMessageRow[]) || []
+}
+
+/** Logs a pet's toast message (thank-you or check-in) into the bell panel — persists until dismissed there, even across reloads. */
+export async function logPetMessage(petId: string, text: string) {
+  const { data, error } = await supabase.from('pet_messages').insert({ pet_id: petId, message: text }).select('id, message, created_at').single()
+  if (error) {
+    console.error('Failed to log pet message', error)
+    return
+  }
+  recentMessages.unshift(data as PetMessageRow)
+  if (recentMessages.length > 30) recentMessages.length = 30
   renderBell()
+}
+
+async function dismissMessage(id: string) {
+  recentMessages = recentMessages.filter((m) => m.id !== id)
+  renderBell()
+  const { error } = await supabase.from('pet_messages').update({ dismissed: true }).eq('id', id)
+  if (error) console.error('Failed to dismiss message', error)
+}
+
+function formatMessageTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
 function renderBell() {
@@ -83,7 +114,12 @@ function renderBell() {
     let html = ''
     if (recentMessages.length) {
       html += '<div class="notif-section-label">Recent messages</div>'
-      html += recentMessages.map((m) => `<div class="notif-item notif-item-message"><span class="notif-time">${esc(m.time)}</span> ${esc(m.text)}</div>`).join('')
+      html += recentMessages
+        .map(
+          (m) =>
+            `<div class="notif-item notif-item-message"><span class="notif-time">${esc(formatMessageTime(m.created_at))}</span> ${esc(m.message)}<button class="notif-dismiss-btn" data-id="${m.id}" aria-label="Dismiss">×</button></div>`
+        )
+        .join('')
     }
     if (reminderItems.length) {
       if (recentMessages.length) html += '<div class="notif-section-label">Reminders</div>'
@@ -97,6 +133,12 @@ function renderBell() {
     list.innerHTML = html
     badge.style.display = 'flex'
     badge.textContent = String(total)
+    list.querySelectorAll<HTMLButtonElement>('.notif-dismiss-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        dismissMessage(btn.dataset.id!)
+      })
+    })
   }
 }
 
@@ -219,6 +261,7 @@ export async function initReminders() {
     wired = true
   }
   await fetchReminders()
+  await fetchRecentMessages()
   renderBell()
   initReminderAlarms()
 }

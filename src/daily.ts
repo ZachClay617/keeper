@@ -703,7 +703,7 @@ function showThanksToast(pet: PetRef) {
   toast.querySelector('.alarm-toast-dismiss')!.addEventListener('click', () => toast.remove())
   wrap.appendChild(toast)
   setTimeout(() => toast.remove(), 10000)
-  logPetMessage(`${pet.name}: ${message}`)
+  logPetMessage(pet.id, `${pet.name}: ${message}`)
 }
 
 /** Call right after a check (not uncheck) toggle — fires the thank-you toast once per pet per day, the moment the last today's-task is checked off. */

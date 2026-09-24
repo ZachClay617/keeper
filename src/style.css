@@ -606,8 +606,13 @@ tr.got .shop-check::after { opacity: 1; }
 .notif-empty { font-size: 13px; color: var(--ink-soft); }
 .notif-section-label { font-size: 11px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; margin: 10px 0 4px; }
 .notif-section-label:first-child { margin-top: 0; }
-.notif-item-message { color: var(--ink-soft); }
+.notif-item-message { color: var(--ink-soft); position: relative; padding-right: 20px; }
 .notif-time { color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.notif-dismiss-btn {
+  position: absolute; top: 8px; right: 0; background: none; border: none; color: var(--ink-soft);
+  font-size: 14px; cursor: pointer; line-height: 1; padding: 2px;
+}
+.notif-dismiss-btn:hover { color: var(--clay); }
 
 .reminder-pet-block { padding: 14px 0; border-top: 1px solid var(--line); }
 .reminder-pet-block:first-child { border-top: none; padding-top: 0; }

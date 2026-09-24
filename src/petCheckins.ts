@@ -76,13 +76,20 @@ const checkinMessages: string[] = []
 openers.forEach((o) => closers.forEach((c) => checkinMessages.push(`${o} ${c}`)))
 
 // ── Scheduling ────────────────────────────────────────────────────────────
-// Each account-day, every active pet gets 3–10 random times to "check in".
-// The schedule and fired-set live only in memory — a reload could re-roll
-// the day's times, same accepted tradeoff as the other alarm features.
+// Each account-day, every active pet gets 3–10 random times to "check in",
+// persisted in pet_checkin_schedule (not just in memory) so the schedule
+// survives reloads. Any client that opens the app — even long after some of
+// today's times have passed — catches up on every unfired due row at once,
+// so a check-in never silently gets skipped just because nobody had the
+// site open when its time arrived.
 
-let scheduleDate: string | null = null
-let timesByPet = new Map<string, string[]>()
-const firedKeys = new Set<string>()
+interface ScheduleRow {
+  id: string
+  pet_id: string
+  time: string
+}
+
+let ensuredForDate: string | null = null
 let intervalId: ReturnType<typeof setInterval> | null = null
 
 function randomTimesForDay(): string[] {
@@ -96,19 +103,30 @@ function randomTimesForDay(): string[] {
   return Array.from(times)
 }
 
+/** Creates today's schedule rows for any active pet that doesn't have one yet. Runs at most once per date per session. */
 async function ensureScheduleForToday(pets: PetRef[]) {
   const today = todayKey()
-  if (scheduleDate === today) return
-  scheduleDate = today
-  timesByPet = new Map()
-  pets.forEach((p) => timesByPet.set(p.id, randomTimesForDay()))
+  if (ensuredForDate === today || !pets.length) return
+  ensuredForDate = today
+
+  const { data: existing, error } = await supabase.from('pet_checkin_schedule').select('pet_id').eq('date', today)
+  if (error) {
+    console.error('Failed to check existing check-in schedule', error)
+    return
+  }
+  const scheduledPetIds = new Set(((existing as { pet_id: string }[]) || []).map((r) => r.pet_id))
+  const missing = pets.filter((p) => !scheduledPetIds.has(p.id))
+  if (!missing.length) return
+
+  const rows = missing.flatMap((p) => randomTimesForDay().map((time) => ({ pet_id: p.id, date: today, time })))
+  const { error: insertError } = await supabase.from('pet_checkin_schedule').insert(rows)
+  if (insertError) console.error('Failed to save check-in schedule', insertError)
 }
 
-function showCheckinToast(pet: PetRef) {
+function showCheckinToast(pet: PetRef, message: string) {
   const wrap = $('alarmToastWrap')
   const toast = document.createElement('div')
   toast.className = 'alarm-toast checkin-toast'
-  const message = checkinMessages[Math.floor(Math.random() * checkinMessages.length)]
   toast.innerHTML = `
     <span class="alarm-toast-icon">${typeEmoji[pet.type]}</span>
     <span class="alarm-toast-text"><strong>${esc(pet.name)}:</strong> ${esc(message)}</span>
@@ -117,7 +135,6 @@ function showCheckinToast(pet: PetRef) {
   toast.querySelector('.alarm-toast-dismiss')!.addEventListener('click', () => toast.remove())
   wrap.appendChild(toast)
   setTimeout(() => toast.remove(), 10000)
-  logPetMessage(`${pet.name}: ${message}`)
 }
 
 async function checkDueCheckins() {
@@ -128,20 +145,31 @@ async function checkDueCheckins() {
   }
   const pets = (data as PetRef[]) || []
   await ensureScheduleForToday(pets)
+  if (!pets.length) return
 
-  const now = nowTimeKey()
   const today = todayKey()
-  pets.forEach((pet) => {
-    const times = timesByPet.get(pet.id) || []
-    times.forEach((t) => {
-      const key = `${pet.id}:${today}:${t}`
-      if (firedKeys.has(key)) return
-      if (t <= now) {
-        firedKeys.add(key)
-        showCheckinToast(pet)
-      }
-    })
-  })
+  const now = nowTimeKey()
+  const { data: due, error: dueError } = await supabase
+    .from('pet_checkin_schedule')
+    .select('id, pet_id, time')
+    .eq('date', today)
+    .eq('fired', false)
+    .lte('time', now)
+  if (dueError) {
+    console.error('Failed to load due check-ins', dueError)
+    return
+  }
+
+  for (const row of (due as ScheduleRow[]) || []) {
+    const pet = pets.find((p) => p.id === row.pet_id)
+    if (!pet) continue
+    // Guard against double-firing if another tab's poll raced this one.
+    const { data: claimed } = await supabase.from('pet_checkin_schedule').update({ fired: true }).eq('id', row.id).eq('fired', false).select().single()
+    if (!claimed) continue
+    const message = checkinMessages[Math.floor(Math.random() * checkinMessages.length)]
+    showCheckinToast(pet, message)
+    await logPetMessage(pet.id, `${pet.name}: ${message}`)
+  }
 }
 
 export function initPetCheckins() {
@@ -153,7 +181,5 @@ export function initPetCheckins() {
 export function stopPetCheckins() {
   if (intervalId) clearInterval(intervalId)
   intervalId = null
-  scheduleDate = null
-  timesByPet = new Map()
-  firedKeys.clear()
+  ensuredForDate = null
 }
